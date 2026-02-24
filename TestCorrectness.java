@@ -6,13 +6,16 @@ public class TestCorrectness {
 
     public static void runXFastCorrectness(int bits, int universe, int insertCount, int checkCount) {
         XFastTree xFast = new XFastTree(bits);
+        YFastTree yFast = new YFastTree(bits);
         TreeSet<Integer> bst = new TreeSet<>();
+
 
         // Insert random values into both trees
         Random rng = new Random();
         for (int i = 0; i < insertCount; i++) {
             int value = rng.nextInt(universe);
             xFast.insert(value);
+            yFast.insert(value);
             bst.add(value);
         }
 
@@ -22,12 +25,18 @@ public class TestCorrectness {
 
             // Query mismatch
             if (bst.contains(key) != xFast.query(key)) {
-                throw new RuntimeException("Query mismatch for key=" + key +" expected=" + bst.contains(key) + " got=" + xFast.query(key));
+                throw new RuntimeException("X Fast Query mismatch for key=" + key +" expected=" + bst.contains(key) + " got=" + xFast.query(key));
+            }
+            if (bst.contains(key) != yFast.query(key)) {
+                throw new RuntimeException("y Fast Query mismatch for key=" + key +" expected=" + bst.contains(key) + " got=" + yFast.query(key));
             }
 
             // Successor mismatch
             if (!Objects.equals(bst.ceiling(key), xFast.successor(key))) {
-                throw new RuntimeException("Successor mismatch for key=" + key +" expected=" + bst.ceiling(key) + " got=" + xFast.successor(key));
+                throw new RuntimeException("X Fast Successor mismatch for key=" + key +" expected=" + bst.ceiling(key) + " got=" + xFast.successor(key));
+            }
+            if (!Objects.equals(bst.ceiling(key), yFast.successor(key))) {
+                throw new RuntimeException("Y FastSuccessor mismatch for key=" + key +" expected=" + bst.ceiling(key) + " got=" + yFast.successor(key));
             }
         }
     }

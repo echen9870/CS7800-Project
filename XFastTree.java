@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -5,28 +6,34 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class XFastTree {
     public static class Node {
 
-        // Doubly linked list for the leaf nodes
-        public Node prev;
-        public Node next;
+    // Doubly linked list for the leaf nodes
+    public Node prev;
+    public Node next;
 
-        // Val
-        public int key;
+    // The sub universe for the leaf node X-Fast trie in a Y-Fast Trie
+    public int[] nums;
+    public int numsSize;
 
-        // Smallest/largest descendant leaf node
-        public Node minLeaf;
-        public Node maxLeaf;
+    // Val
+    public int key;
 
-        public boolean isLeaf;
+    // Smallest/largest descendant leaf node
+    public Node minLeaf;
+    public Node maxLeaf;
 
-        public Node() {
-            this.prev = null;
-            this.next = null;
-            this.key = 0;
-            this.minLeaf = null;
-            this.maxLeaf = null;
-            this.isLeaf = false;
-        }
+    public boolean isLeaf;
+
+    public Node() {
+        this.prev = null;
+        this.next = null;
+        this.key = 0;
+        this.minLeaf = null;
+        this.maxLeaf = null;
+        this.isLeaf = false;
+        this.nums = null;
+        this.numsSize = 0;
     }
+}
 
     // universe = 2**bits
     public int bits;
@@ -259,6 +266,10 @@ public class XFastTree {
     // ----------------
 
     public boolean insert(int x) {
+        return insert(x, null, 0);
+    }
+
+    public boolean insert(int x, int[] list, int listSize) {
         writeLock.lock();
         try {
             if (queryNoLock(x)) {
@@ -270,6 +281,8 @@ public class XFastTree {
             leaf.key = x;
             leaf.minLeaf = leaf;
             leaf.maxLeaf = leaf;
+            leaf.nums = list;
+            leaf.numsSize = listSize;
 
             Integer successorKey = successorNoLock(x);
             Node successorNode = (successorKey != null) ? queryNodeNoLock(successorKey) : null;
