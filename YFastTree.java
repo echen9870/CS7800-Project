@@ -54,11 +54,7 @@ public class YFastTree {
         nums = nextNode.nums;
         numsSize = nextNode.numsSize;
         if (nums == null || numsSize == 0) return null;
-
-        int idx = Arrays.binarySearch(nums, 0, numsSize, x);
-        if (idx >= 0) return nums[idx];
-        idx = -idx - 1;
-        return (idx < numsSize) ? nums[idx] : null;
+        return nums[0];
     }
 
     public void insert(int x) {

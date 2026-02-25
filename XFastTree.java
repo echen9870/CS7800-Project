@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class XFastTree {
@@ -21,6 +22,11 @@ public class XFastTree {
     public Node minLeaf;
     public Node maxLeaf;
 
+    // Concurrency control
+    public ReentrantReadWriteLock bucketRw = new ReentrantReadWriteLock();
+    public Lock bucketReadLock = bucketRw.readLock();
+    public Lock bucketWriteLock = bucketRw.writeLock();
+
     public boolean isLeaf;
 
     public Node() {
@@ -32,6 +38,9 @@ public class XFastTree {
         this.isLeaf = false;
         this.nums = null;
         this.numsSize = 0;
+        this.bucketRw = new ReentrantReadWriteLock();
+        this.bucketReadLock = bucketRw.readLock();
+        this.bucketWriteLock = bucketRw.writeLock();
     }
 }
 

@@ -1,5 +1,6 @@
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestingFramework {
     enum OPType {INSERT, QUERY, SUCCESSOR}
@@ -17,7 +18,7 @@ public class TestingFramework {
     public int[] nums;
 
     public Ops[] randomOps;
-    public int[]randomNums;
+    public int[] randomNums;
     public static final OPType[] ops = { OPType.INSERT, OPType.QUERY, OPType.SUCCESSOR };
 
     public TestingFramework(int universe) {
@@ -62,23 +63,9 @@ public class TestingFramework {
         double queryTimeSeconds;
         double successorTimeSeconds;
 
-        insertTimeSeconds = runPhase(threadCount, this.nums.length, (startIndex, endIndex) -> {
-            for (int i = startIndex; i < endIndex; i++) {
-                insertFn.apply(this.nums[i]);
-            }
-        });
-
-        queryTimeSeconds = runPhase(threadCount, this.nums.length, (startIndex, endIndex) -> {
-            for (int i = startIndex; i < endIndex; i++) {
-                queryFn.apply(this.nums[i]);
-            }
-        });
-
-        successorTimeSeconds = runPhase(threadCount, this.nums.length, (startIndex, endIndex) -> {
-            for (int i = startIndex; i < endIndex; i++) {
-                successorFn.apply(this.nums[i]);
-            }
-        });
+        insertTimeSeconds = runPhase(threadCount, this.nums.length, (i) -> insertFn.apply(this.nums[i]));
+        queryTimeSeconds  = runPhase(threadCount, this.nums.length, (i) -> queryFn.apply(this.nums[i]));
+        successorTimeSeconds = runPhase(threadCount, this.nums.length, (i) -> successorFn.apply(this.nums[i]));
 
         return new RunResult(
                 name + "_" + threadCount + "thread",
@@ -103,17 +90,14 @@ public class TestingFramework {
             }
         }
 
-        // Actual ops
-        double totalTime = runPhase(threadCount, this.randomOps.length, (startIndex, endIndex) -> {
-            for (int i = startIndex; i < endIndex; i++) {
-                Ops op = this.randomOps[i];
-                if (op.op == OPType.INSERT) {
-                    insertFn.apply(op.number);
-                } else if (op.op == OPType.QUERY) {
-                    queryFn.apply(op.number);
-                } else {
-                    successorFn.apply(op.number);
-                }
+        double totalTime = runPhase(threadCount, this.randomOps.length, (i) -> {
+            Ops op = this.randomOps[i];
+            if (op.op == OPType.INSERT) {
+                insertFn.apply(op.number);
+            } else if (op.op == OPType.QUERY) {
+                queryFn.apply(op.number);
+            } else {
+                successorFn.apply(op.number);
             }
         });
 
@@ -127,29 +111,28 @@ public class TestingFramework {
         );
     }
 
-    public double runPhase(int threadCount, int n, RangeOp workFn) {
+    public double runPhase(int threadCount, int n, IndexOp workFn) {
 
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(threadCount);
-
-        Thread[] threads = new Thread[threadCount];
+        AtomicInteger nextIndex = new AtomicInteger(0);
 
         for (int threadId = 0; threadId < threadCount; threadId++) {
-            int startIndex = (int) (((long) threadId) * n / threadCount);
-            int endIndex = (int) (((long) (threadId + 1)) * n / threadCount);
-
-            threads[threadId] = new Thread(() -> {
+            Thread thread = new Thread(() -> {
                 try {
                     startLatch.await();
-                    workFn.apply(startIndex, endIndex);
+                    while (true) {
+                        int i = nextIndex.getAndIncrement();
+                        if (i >= n) break;
+                        workFn.apply(i);
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } finally {
                     doneLatch.countDown();
                 }
             });
-
-            threads[threadId].start();
+            thread.start();
         }
 
         long startTime = System.nanoTime();
@@ -181,7 +164,7 @@ public class TestingFramework {
     }
 
     @FunctionalInterface
-    public interface RangeOp {
-        void apply(int startIndex, int endIndex);
+    public interface IndexOp {
+        void apply(int i);
     }
 }
