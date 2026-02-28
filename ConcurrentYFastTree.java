@@ -15,8 +15,14 @@ public class ConcurrentYFastTree {
         while (true) {
             // Locate owning bucket via xfast (optimistic first, then pessimistic)
             long lock = xfast.rw.tryOptimisticRead();
-            Integer rep = xfast.predecessorNoLock(x);
-            XFastTree.Node node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+            Integer rep = null;
+            XFastTree.Node node = null;
+            try {
+                rep = xfast.predecessorNoLock(x);
+                node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+            } catch (NullPointerException e) {
+                lock = 0; // force pessimistic fallback
+            }
 
             if (!xfast.rw.validate(lock)) {
                 lock = xfast.rw.readLock();
@@ -66,8 +72,14 @@ public class ConcurrentYFastTree {
         while (true) {
             // Locate owning bucket via xfast (optimistic first, then pessimistic)
             long lock = xfast.rw.tryOptimisticRead();
-            Integer rep = xfast.predecessorNoLock(x);
-            XFastTree.Node node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+            Integer rep = null;
+            XFastTree.Node node = null;
+            try {
+                rep = xfast.predecessorNoLock(x);
+                node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+            } catch (NullPointerException e) {
+                lock = 0; // force pessimistic fallback
+            }
 
             if (!xfast.rw.validate(lock)) {
                 lock = xfast.rw.readLock();
@@ -128,13 +140,19 @@ public class ConcurrentYFastTree {
     }
 
     public void insert(int x) {
-        int maxSize = 16 * bits;
+        int maxSize = 128 * bits;
         // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to modify it
         while (true) {
             // locate owning bucket — optimistic first, then pessimistic
             long lock = xfast.rw.tryOptimisticRead();
-            Integer rep = xfast.predecessorNoLock(x);
-            XFastTree.Node node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+            Integer rep = null;
+            XFastTree.Node node = null;
+            try {
+                rep = xfast.predecessorNoLock(x);
+                node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+            } catch (NullPointerException e) {
+                lock = 0; // force pessimistic fallback
+            }
 
             if (!xfast.rw.validate(lock)) {
                 lock = xfast.rw.readLock();

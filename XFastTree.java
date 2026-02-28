@@ -199,7 +199,12 @@ public class XFastTree {
     // smallest key >= x, or null if none
     public Integer successor(int x) {
         long stamp = rw.tryOptimisticRead();
-        Integer result = successorNoLock(x);
+        Integer result = null;
+        try {
+            result = successorNoLock(x);
+        } catch (NullPointerException e) {
+            stamp = 0;
+        }
         if (!rw.validate(stamp)) {
             stamp = rw.readLock();
             try {
@@ -214,7 +219,12 @@ public class XFastTree {
     // largest key <= x, or null if none
     public Integer predecessor(int x) {
         long stamp = rw.tryOptimisticRead();
-        Integer result = predecessorNoLock(x);
+        Integer result = null;
+        try {
+            result = predecessorNoLock(x);
+        } catch (NullPointerException e) {
+            stamp = 0;
+        }
         if (!rw.validate(stamp)) {
             stamp = rw.readLock();
             try {

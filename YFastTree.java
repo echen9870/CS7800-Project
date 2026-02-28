@@ -87,7 +87,7 @@ public class YFastTree {
         node.numsSize = numsSize + 1;
 
         // split if too big
-        if (maxSize == nums.length) {
+        if (maxSize == node.numsSize) {
             splitList(rep);
         }
         return;
