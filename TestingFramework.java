@@ -3,23 +3,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestingFramework {
-    enum OPType {INSERT, QUERY, SUCCESSOR}
-
-    static class Ops {
-        OPType op;
-        int number;
-        Ops(OPType op, int number) {
-            this.op = op;
-            this.number = number;
-        }
-    }
+    public static final byte INSERT    = 0;
+    public static final byte QUERY     = 1;
+    public static final byte SUCCESSOR = 2;
 
     public int universe;
     public int[] nums;
 
-    public Ops[] randomOps;
+    public int[] randomOpKeys;
+    public byte[] randomOpTypes;
     public int[] randomNums;
-    public static final OPType[] ops = { OPType.INSERT, OPType.QUERY, OPType.SUCCESSOR };
 
     public TestingFramework(int universe) {
         this.universe = universe;
@@ -49,11 +42,11 @@ public class TestingFramework {
         }
 
         // Generate the operations
-        this.randomOps = new Ops[n];
+        this.randomOpKeys  = new int[n];
+        this.randomOpTypes = new byte[n];
         for (int i = 0; i < n; i++) {
-            OPType op = ops[rng.nextInt(ops.length)];
-            int num = rng.nextInt(this.universe);
-            this.randomOps[i] = new Ops(op, num);
+            this.randomOpKeys[i]  = rng.nextInt(this.universe);
+            this.randomOpTypes[i] = (byte) rng.nextInt(3);
         }
     }
 
@@ -86,20 +79,21 @@ public class TestingFramework {
             }
         }
 
-        double totalTime = runPhase(threadCount, this.randomOps.length, (i) -> {
-            Ops op = this.randomOps[i];
-            if (op.op == OPType.INSERT) {
-                insertFn.apply(op.number);
-            } else if (op.op == OPType.QUERY) {
-                queryFn.apply(op.number);
+        double totalTime = runPhase(threadCount, this.randomOpKeys.length, (i) -> {
+            int num = this.randomOpKeys[i];
+            byte op  = this.randomOpTypes[i];
+            if (op == INSERT) {
+                insertFn.apply(num);
+            } else if (op == QUERY) {
+                queryFn.apply(num);
             } else {
-                successorFn.apply(op.number);
+                successorFn.apply(num);
             }
         });
 
         return new RunResult(
                 name + "_" + threadCount + "thread",
-                this.randomOps.length,
+                this.randomOpKeys.length,
                 this.universe,
                 totalTime,
                 0,

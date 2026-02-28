@@ -9,16 +9,15 @@ public class TestCorrectnessConcurrent {
 
     // This runs a single threaded application, and puts the expected answers in expectedBool and expectedInt, we use these two arrays
     // Call before runConcurrentAndCheck function
-    public static void runSequentialExpected(int bits, OpsGenerator.Op[] ops, boolean[] expectedBool, Integer[] expectedInt) {
+    public static void runSequentialExpected(int bits, int[] keys, byte[] types, boolean[] expectedBool, Integer[] expectedInt) {
         YFastTree yfast = new YFastTree(bits);
 
-        for (int i = 0; i < ops.length; i++) {
-            OpsGenerator.Op op = ops[i];
-            int key = op.key;
+        for (int i = 0; i < keys.length; i++) {
+            int key = keys[i];
 
-            if (op.type == OpsGenerator.OpType.INSERT) {
+            if (types[i] == OpsGenerator.INSERT) {
                 yfast.insert(key);
-            } else if (op.type == OpsGenerator.OpType.QUERY) {
+            } else if (types[i] == OpsGenerator.QUERY) {
                 expectedBool[i] = yfast.query(key);
             } else {
                 expectedInt[i] = yfast.successor(key);
@@ -26,7 +25,7 @@ public class TestCorrectnessConcurrent {
         }
     }
 
-    public static void runConcurrentAndCheck(int bits, OpsGenerator.Op[] ops, boolean[] expectedBool, Integer[] expectedInt, int threadCount) {
+    public static void runConcurrentAndCheck(int bits, int[] keys, byte[] types, boolean[] expectedBool, Integer[] expectedInt, int threadCount) {
         ConcurrentYFastTree concurrent = new ConcurrentYFastTree(bits);
 
         AtomicInteger nextIndex = new AtomicInteger(0);
@@ -43,19 +42,18 @@ public class TestCorrectnessConcurrent {
 
                     while (error.get() == null) {
                         int i = nextIndex.getAndIncrement();
-                        if (i >= ops.length) break;
+                        if (i >= keys.length) break;
 
                         while (turn.get() != i) {
                             if (error.get() != null) return;
                             LockSupport.parkNanos(1L);
                         }
 
-                        OpsGenerator.Op op = ops[i];
-                        int key = op.key;
+                        int key = keys[i];
 
-                        if (op.type == OpsGenerator.OpType.INSERT) {
+                        if (types[i] == OpsGenerator.INSERT) {
                             concurrent.insert(key);
-                        } else if (op.type == OpsGenerator.OpType.QUERY) {
+                        } else if (types[i] == OpsGenerator.QUERY) {
                             if (concurrent.query(key) != expectedBool[i]) {
                                 error.compareAndSet(null, new RuntimeException("QUERY mismatch at op=" + i + " key=" + key));
                                 return;
@@ -95,21 +93,20 @@ public class TestCorrectnessConcurrent {
         int bits = 16;
         int universe = 1 << bits;
 
-        int opCount = 1 << 16;
+        int opCount = 1 << 20;
         int threadCount = 1;
 
         OpsGenerator gen = new OpsGenerator(universe, opCount, 123456789, 80, 10, 10);
-        OpsGenerator.Op[] ops = gen.ops;
 
         boolean[] expectedBool = new boolean[opCount];
         Integer[] expectedInt = new Integer[opCount];
         Arrays.fill(expectedInt, null);
 
         try {
-            runSequentialExpected(bits, ops, expectedBool, expectedInt);
+            runSequentialExpected(bits, gen.keys, gen.types, expectedBool, expectedInt);
             System.out.println("Built expected answers with YFastTree: ops=" + opCount);
 
-            runConcurrentAndCheck(bits, ops, expectedBool, expectedInt, threadCount);
+            runConcurrentAndCheck(bits, gen.keys, gen.types, expectedBool, expectedInt, threadCount);
             System.out.println("Concurrent correctness OK vs YFastTree: ops=" + opCount + " threads=" + threadCount);
         } catch (RuntimeException e) {
             System.out.println("Correctness FAILED: " + e.getMessage());

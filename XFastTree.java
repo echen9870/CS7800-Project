@@ -2,7 +2,14 @@ import java.util.HashMap;
 import java.util.concurrent.locks.StampedLock;
 
 public class XFastTree {
-    public static class Node {
+    // Internal trie nodes only need min/max leaf pointers
+    public static class InternalNode {
+        public Node minLeaf;
+        public Node maxLeaf;
+    }
+
+    // Leaf nodes carry bucket data and linked-list pointers
+    public static class Node extends InternalNode {
 
         // Doubly linked list for the leaf nodes
         public Node prev;
@@ -15,10 +22,6 @@ public class XFastTree {
         // Val
         public int key;
 
-        // Smallest/largest descendant leaf node
-        public Node minLeaf;
-        public Node maxLeaf;
-
         // Concurrency control
         public StampedLock bucketRw;
 
@@ -26,8 +29,6 @@ public class XFastTree {
             this.prev = null;
             this.next = null;
             this.key = 0;
-            this.minLeaf = null;
-            this.maxLeaf = null;
             this.nums = null;
             this.numsSize = 0;
             this.bucketRw = null;
@@ -36,10 +37,10 @@ public class XFastTree {
 
     // universe = 2**bits
     public int bits;
-    public HashMap<Integer, Node>[] level;
+    public HashMap<Integer, InternalNode>[] level;
     public int[] shiftAtDepth;
 
-    public Node root;
+    public InternalNode root;
     // start/end of leaf linked list
     public Node headLeaf;
     public Node tailLeaf;
@@ -63,7 +64,7 @@ public class XFastTree {
             this.shiftAtDepth[depth] = bits - depth;
         }
 
-        this.root = new Node();
+        this.root = new InternalNode();
         this.level[0].put(0, this.root);
 
         this.headLeaf = null;
@@ -118,7 +119,7 @@ public class XFastTree {
     }
 
     Node queryNodeNoLock(int x) {
-        return this.level[this.bits].get(x);
+        return (Node) this.level[this.bits].get(x);
     }
 
     public int longestPrefixLen(int x) {
@@ -136,12 +137,12 @@ public class XFastTree {
     }
 
     int longestPrefixLenNoLock(int x) {
-        int low = 0;
+        int low = 1; // level 0 (root) always exists, skip it
         int high = this.bits - 1;
 
         while (low < high) {
             int mid = (low + high + 1) / 2;
-            int prefix = (mid == 0) ? 0 : (x >>> this.shiftAtDepth[mid]);
+            int prefix = x >>> this.shiftAtDepth[mid];
 
             if (this.level[mid].containsKey(prefix)) {
                 low = mid;
@@ -165,15 +166,15 @@ public class XFastTree {
         // Find the node located at the longest prefix length
         int prefixLen = longestPrefixLenNoLock(x);
         int prefix = x >>> this.shiftAtDepth[prefixLen];
-        Node node = this.level[prefixLen].get(prefix);
+        InternalNode node = this.level[prefixLen].get(prefix);
 
         int nextBit = bitAtDepth(x, prefixLen);
-        
+
         // If our next bit is 0
         if (nextBit == 0) {
             // If right child exists, return the smallest descendant in the right child, else just return the largest key in this leaf
             int rightChildPrefix = (prefix << 1) | 1;
-            Node rightChild = this.level[prefixLen + 1].get(rightChildPrefix);
+            InternalNode rightChild = this.level[prefixLen + 1].get(rightChildPrefix);
             if (rightChild != null) return rightChild.minLeaf.key;
         }
         return node.maxLeaf.next.key;
@@ -298,10 +299,10 @@ public class XFastTree {
         // Insert upwards
         for (int depth = 0; depth < this.bits; depth++) {
             int prefix = (depth == 0) ? 0 : (x >>> this.shiftAtDepth[depth]);
-            Node node = this.level[depth].get(prefix);
+            InternalNode node = this.level[depth].get(prefix);
             // Initialize node is not initialized
             if (node == null) {
-                node = new Node();
+                node = new InternalNode();
                 this.level[depth].put(prefix, node);
             }
 

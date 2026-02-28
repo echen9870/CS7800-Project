@@ -60,7 +60,7 @@ public class ConcurrentYFastTree {
 
             // // stale check
             int ins = -pos - 1;
-            if (ins == numsSize && freshNextNode != null && freshNextNode.nums[0] <= x) continue;
+            if (ins == numsSize && freshNextNode != null && x >= freshNextNode.key) continue;
 
             return false;
         }
@@ -123,19 +123,8 @@ public class ConcurrentYFastTree {
             // x is past every element in this bucket; successor is the first key of the next bucket.
             if (freshNextNode == null) return null;
 
-            lock = freshNextNode.bucketRw.tryOptimisticRead();
-            int firstKey = freshNextNode.nums[0];
-            if (!freshNextNode.bucketRw.validate(lock)) {
-                lock = freshNextNode.bucketRw.readLock();
-                try {
-                    firstKey = freshNextNode.nums[0];
-                } finally {
-                    freshNextNode.bucketRw.unlockRead(lock);
-                }
-            }
-
-            // stale answer check, bucket might have split during this read
-            if (firstKey >= x) return firstKey;
+            // key is immutable once set and equals nums[0] by invariant — no lock needed
+            if (freshNextNode.key >= x) return freshNextNode.key;
         }
     }
 
@@ -190,6 +179,7 @@ public class ConcurrentYFastTree {
                 int pos = Arrays.binarySearch(nums, 0, numsSize, x);
                 if (pos >= 0) return;
                 pos = -pos - 1;
+
                 System.arraycopy(nums, pos, nums, pos + 1, numsSize - pos);
                 nums[pos] = x;
                 node.numsSize = numsSize + 1;
