@@ -1,4 +1,4 @@
-import java.util.*;
+import java.util.Arrays;
 
 public class ConcurrentYFastTree {
     public int bits = 0;
@@ -11,164 +11,201 @@ public class ConcurrentYFastTree {
     }
 
     public boolean query(int x) {
-        // get rep
-        Integer rep = xfast.predecessor(x);
-        XFastTree.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
-        if (node == null) return false;
+        // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to query it
+        while (true) {
+            // Locate owning bucket via xfast (optimistic first, then pessimistic)
+            long lock = xfast.rw.tryOptimisticRead();
+            Integer rep = xfast.predecessorNoLock(x);
+            XFastTree.Node node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
 
-        node.bucketReadLock.lock();
-        try {
+            if (!xfast.rw.validate(lock)) {
+                lock = xfast.rw.readLock();
+                try {
+                    rep = xfast.predecessorNoLock(x);
+                    node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+                } finally {
+                    xfast.rw.unlockRead(lock);
+                }
+            }
+
+            if (node == null) return false;
+
+            // Read the bucket and node.next
+            // node.next is only modified while holding the bucket writeLock
+            // so the bucket stamp covers it
+            lock = node.bucketRw.tryOptimisticRead();
             int[] nums = node.nums;
             int numsSize = node.numsSize;
-            if (nums == null || numsSize == 0) return false;
+            XFastTree.Node freshNextNode = node.next;
 
-            // binary search inside bucket
+            if (!node.bucketRw.validate(lock)) {
+                lock = node.bucketRw.readLock();
+                try {
+                    nums = node.nums;
+                    numsSize = node.numsSize;
+                    freshNextNode = node.next;
+                } finally {
+                    node.bucketRw.unlockRead(lock);
+                }
+            }
+
             int pos = Arrays.binarySearch(nums, 0, numsSize, x);
+            if (pos >= 0) return true;
 
-            return (pos >= 0);
-        } finally {
-            node.bucketReadLock.unlock();
+            // // stale check
+            int ins = -pos - 1;
+            if (ins == numsSize && freshNextNode != null && freshNextNode.nums[0] <= x) continue;
+
+            return false;
         }
     }
 
     // smallest key >= x, or null if none
     public Integer successor(int x) {
-            // get rep
-            Integer rep = xfast.predecessor(x);
-            XFastTree.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
-            if (node == null) return null;
+        // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to query it
+        while (true) {
+            // Locate owning bucket via xfast (optimistic first, then pessimistic)
+            long lock = xfast.rw.tryOptimisticRead();
+            Integer rep = xfast.predecessorNoLock(x);
+            XFastTree.Node node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
 
-            node.bucketReadLock.lock();
-            try {
-                // get node
-                int[] nums = node.nums;
-                int numsSize = node.numsSize;
-                if (nums == null || numsSize == 0) return null;
-
-                int last = nums[numsSize - 1];
-
-                if (x <= last) {
-                    int idx = Arrays.binarySearch(nums, 0, numsSize, x);
-                    if (idx >= 0) return nums[idx];
-                    idx = -idx - 1;
-                    return (idx < numsSize) ? nums[idx] : null;
+            if (!xfast.rw.validate(lock)) {
+                lock = xfast.rw.readLock();
+                try {
+                    rep = xfast.predecessorNoLock(x);
+                    node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+                } finally {
+                    xfast.rw.unlockRead(lock);
                 }
-            } finally {
-                node.bucketReadLock.unlock();
             }
 
-            // If our last element is less than x, we have to go to next node
-            XFastTree.Node nextNode = node.next;
-            if (nextNode == null) return null;
+            // x is smaller than every existing key
+            if (node == null) return xfast.headLeaf == null ? null : xfast.headLeaf.key;
 
-            nextNode.bucketReadLock.lock();
-            try {
-                int[] nums = nextNode.nums;
-                int numsSize = nextNode.numsSize;
-                if (nums == null || numsSize == 0) return null;
+            // Read the bucket and read node.next
+            lock = node.bucketRw.tryOptimisticRead();
+            int[] nums = node.nums;
+            int numsSize = node.numsSize;
+            XFastTree.Node freshNextNode = node.next;
 
-                if (x <= nums[0]) return nums[0];
+            if (!node.bucketRw.validate(lock)) {
+                lock = node.bucketRw.readLock();
+                try {
+                    nums = node.nums;
+                    numsSize = node.numsSize;
+                    freshNextNode = node.next;
+                } finally {
+                    node.bucketRw.unlockRead(lock);
+                }
+            }
 
+            // Binary search within this bucket
+            int last = nums[numsSize - 1];
+            if (x <= last) {
                 int idx = Arrays.binarySearch(nums, 0, numsSize, x);
                 if (idx >= 0) return nums[idx];
                 idx = -idx - 1;
                 return (idx < numsSize) ? nums[idx] : null;
-            } finally {
-                nextNode.bucketReadLock.unlock();
             }
+
+            // x is past every element in this bucket; successor is the first key of the next bucket.
+            if (freshNextNode == null) return null;
+
+            lock = freshNextNode.bucketRw.tryOptimisticRead();
+            int firstKey = freshNextNode.nums[0];
+            if (!freshNextNode.bucketRw.validate(lock)) {
+                lock = freshNextNode.bucketRw.readLock();
+                try {
+                    firstKey = freshNextNode.nums[0];
+                } finally {
+                    freshNextNode.bucketRw.unlockRead(lock);
+                }
+            }
+
+            // stale answer check, bucket might have split during this read
+            if (firstKey >= x) return firstKey;
+        }
     }
 
     public void insert(int x) {
-        // max bucket size
         int maxSize = 16 * bits;
-        if (maxSize < 2) maxSize = 2;
-
+        // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to modify it
         while (true) {
-            // first insert
-            if (xfast.size == 0) {
-                int[] nums = new int[2];
-                nums[0] = x;
-                xfast.insert(x, nums, 1);
-                return;
-            }
+            // locate owning bucket — optimistic first, then pessimistic
+            long lock = xfast.rw.tryOptimisticRead();
+            Integer rep = xfast.predecessorNoLock(x);
+            XFastTree.Node node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
 
-            // find bucket rep
-            Integer rep = xfast.predecessor(x);
-
-            // x is smaller than smallest rep
-            if (rep == null) {
-                int[] nums = new int[2];
-                nums[0] = x;
-                xfast.insert(x, nums, 1);
-                return;
-            }
-
-            XFastTree.Node node = xfast.queryNode(rep);
-            if (node == null) continue;
-
-            node.bucketWriteLock.lock();
-            try {
-                int repKey = node.key;
-                Integer nextRep = xfast.successor(repKey + 1);
-                if (nextRep != null && x >= nextRep) {
-                    continue;
+            if (!xfast.rw.validate(lock)) {
+                lock = xfast.rw.readLock();
+                try {
+                    rep = xfast.predecessorNoLock(x);
+                    node = (rep != null) ? xfast.queryNodeNoLock(rep) : null;
+                } finally {
+                    xfast.rw.unlockRead(lock);
                 }
+            }
+
+            // x is smaller than every existing key — create a new head bucket
+            if (rep == null) {
+                lock = xfast.rw.writeLock();
+                try {
+                    if (xfast.predecessorNoLock(x) != null) continue;
+                    int[] nums = new int[maxSize];
+                    nums[0] = x;
+                    xfast.insertNoLock(x, nums, 1);
+                    return;
+                } finally {
+                    xfast.rw.unlockWrite(lock);
+                }
+            }
+
+            // insert into the bucket
+            lock = node.bucketRw.writeLock();
+            try {
+                // stale check
+                Integer currentNextRep = (node.next != null) ? node.next.key : null;
+                if (currentNextRep != null && x >= currentNextRep) continue;
 
                 int[] nums = node.nums;
                 int numsSize = node.numsSize;
-                if (nums == null) return;
-
-                // insert sorted
                 int pos = Arrays.binarySearch(nums, 0, numsSize, x);
                 if (pos >= 0) return;
                 pos = -pos - 1;
-
-                if (numsSize >= nums.length) {
-                    int newCapacity = nums.length == 0 ? 2 : (nums.length * 2);
-                    int[] newNums = new int[newCapacity];
-                    System.arraycopy(nums, 0, newNums, 0, numsSize);
-                    nums = newNums;
-                    node.nums = nums;
-                }
-
-                if (pos < numsSize) {
-                    System.arraycopy(nums, pos, nums, pos + 1, numsSize - pos);
-                }
+                System.arraycopy(nums, pos, nums, pos + 1, numsSize - pos);
                 nums[pos] = x;
                 node.numsSize = numsSize + 1;
 
-                // split if too big
-                if (node.numsSize > maxSize) {
-                    splitListLocked(node);
+                // split the bucket if full
+                if (node.numsSize == maxSize) {
+                    long xLock = xfast.rw.writeLock();
+                    try {
+                        splitListLocked(node, maxSize);
+                    } finally {
+                        xfast.rw.unlockWrite(xLock);
+                    }
                 }
                 return;
             } finally {
-                node.bucketWriteLock.unlock();
+                node.bucketRw.unlockWrite(lock);
             }
         }
     }
 
-    // gets corresponding rep for a number (the predecessor of x)
-    public Integer bucketRep(int x) {
-        return xfast.predecessor(x);
-    }
-
-    private void splitListLocked(XFastTree.Node node) {
+    private void splitListLocked(XFastTree.Node node, int bucketCapacity) {
         int[] nums = node.nums;
         int numsSize = node.numsSize;
-        if (nums == null) return;
 
         // split in half
         int half = numsSize / 2;
-        if (half <= 0 || half >= numsSize) return;
 
         int newNumsSize = numsSize - half;
-        int[] newNums = new int[Math.max(2, newNumsSize)];
+        int[] newNums = new int[bucketCapacity];
         System.arraycopy(nums, half, newNums, 0, newNumsSize);
 
         node.numsSize = half;
 
-        // register new bucket + rep
-        xfast.insert(newNums[0], newNums, newNumsSize);
+        // register new bucket + rep (caller already holds xfast writeLock)
+        xfast.insertNoLock(newNums[0], newNums, newNumsSize);
     }
 }

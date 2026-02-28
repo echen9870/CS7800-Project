@@ -21,13 +21,9 @@ public class RunResult {
 
     @Override
     public String toString() {
-        return "RunResult{" +
-                "name='" + name + '\'' +
-                ", n=" + n +
-                ", universe=" + universe +
-                ", insert=" + insertTimeSeconds +
-                ", query=" + queryTimeSeconds +
-                ", successor=" + successorTimeSeconds +
-                '}';
+        return String.format(
+                "RunResult{name='%s', n=%d, universe=%d, insert=%.6f, query=%.6f, successor=%.6f}",
+                name, n, universe, insertTimeSeconds, queryTimeSeconds, successorTimeSeconds
+        );
     }
 }

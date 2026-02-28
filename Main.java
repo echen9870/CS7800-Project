@@ -9,22 +9,23 @@ public class Main {
         int universe = 1 << bits;
 
         TestingFramework framework = new TestingFramework(universe);
-        framework.generateOps(1 << (bits + 2), 1 << (bits - 2));
-
-        List<RunResult> results = new ArrayList<>();
+        framework.generateOps(
+            (int) Math.min(1L << (bits + 2), Integer.MAX_VALUE),
+            (int) Math.min(1L << (bits - 2), Integer.MAX_VALUE)
+        );
 
         // BST
-        TreeSet<Integer> bst = new TreeSet<>();
-        {
-            RunResult r = framework.runRandom(
-                    "BST",
-                    1,
-                    (x) -> bst.add(x),
-                    (x) -> bst.contains(x),
-                    (x) -> bst.ceiling(x)
-            );
-            results.add(r);
-        }
+        // TreeSet<Integer> bst = new TreeSet<>();
+        // {
+        //     RunResult r = framework.runRandom(
+        //             "BST",
+        //             1,
+        //             (x) -> bst.add(x),
+        //             (x) -> bst.contains(x),
+        //             (x) -> bst.ceiling(x)
+        //     );
+        //     results.add(r);
+        // }
 
         // // XFast 1 thread
         // XFastTree xFast1 = new XFastTree(bits);
@@ -56,16 +57,16 @@ public class Main {
         // ConcurrentYFastTree yFast = new ConcurrentYFastTree(bits);
         // {
         //     RunResult r = framework.runRandom(
-        //             "YFastTree",
+        //             "ConcurrentYFastTree",
         //             1,
         //             (x) -> yFast.insert(x),
         //             (x) -> yFast.query(x),
         //             (x) -> yFast.successor(x)
         //     );
-        //     results.add(r);
+        //     System.out.println(r);
         // }
 
-        // Concurrent Y-Fast 8 threads
+        // Concurrent Y-Fast 16 threads
         ConcurrentYFastTree concurrentYFast = new ConcurrentYFastTree(bits);
         {
             RunResult r = framework.runRandom(
@@ -75,10 +76,6 @@ public class Main {
                     (x) -> concurrentYFast.query(x),
                     (x) -> concurrentYFast.successor(x)
             );
-            results.add(r);
-        }
-
-        for (RunResult r : results) {
             System.out.println(r);
         }
 

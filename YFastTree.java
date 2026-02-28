@@ -18,7 +18,6 @@ public class YFastTree {
 
         int[] nums = node.nums;
         int numsSize = node.numsSize;
-        if (nums == null || numsSize == 0) return false;
 
         // binary search inside bucket
         int pos = Arrays.binarySearch(nums, 0, numsSize, x);
@@ -36,7 +35,6 @@ public class YFastTree {
         // get node
         int[] nums = node.nums;
         int numsSize = node.numsSize;
-        if (nums == null || numsSize == 0) return null;
 
         int last = nums[numsSize - 1];
 
@@ -61,25 +59,18 @@ public class YFastTree {
         // max bucket size
         int maxSize = 16 * bits;
 
-        // first insert
-        if (xfast.size == 0) {
-            int[] nums = new int[2];
-            nums[0] = x;
-            xfast.insert(x, nums, 1);
-            return;
-        }
-
         // find bucket rep
         Integer rep = xfast.predecessor(x);
 
         // x is smaller than smallest rep
         if (rep == null) {
-            int[] nums = new int[2];
+            int[] nums = new int[maxSize];
             nums[0] = x;
             xfast.insert(x, nums, 1);
             return;
         }
 
+        // Get representative
         XFastTree.Node node = xfast.queryNode(rep);
         int[] nums = node.nums;
         int numsSize = node.numsSize;
@@ -89,14 +80,6 @@ public class YFastTree {
         if (pos >= 0) return;
         pos = -pos - 1;
 
-        if (numsSize >= nums.length) {
-            int newCapacity = nums.length == 0 ? 2 : (nums.length * 2);
-            int[] newNums = new int[newCapacity];
-            System.arraycopy(nums, 0, newNums, 0, numsSize);
-            nums = newNums;
-            node.nums = nums;
-        }
-
         if (pos < numsSize) {
             System.arraycopy(nums, pos, nums, pos + 1, numsSize - pos);
         }
@@ -104,15 +87,10 @@ public class YFastTree {
         node.numsSize = numsSize + 1;
 
         // split if too big
-        if (node.numsSize > maxSize) {
+        if (maxSize == nums.length) {
             splitList(rep);
         }
         return;
-    }
-
-    // gets corresponding rep for a number (the predecessor of x)
-    public Integer bucketRep(int x) {
-        return xfast.predecessor(x);
     }
 
     public void splitList(int rep) {
@@ -128,7 +106,7 @@ public class YFastTree {
         if (half <= 0 || half >= numsSize) return;
 
         int newNumsSize = numsSize - half;
-        int[] newNums = new int[Math.max(2, newNumsSize)];
+        int[] newNums = new int[16 * bits];
         System.arraycopy(nums, half, newNums, 0, newNumsSize);
 
         node.numsSize = half;
