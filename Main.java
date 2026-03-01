@@ -6,16 +6,16 @@ public class Main {
     public static void main(String[] args) {
 
         int bits = Integer.parseInt(args[0]);
-        int universe = 1 << bits;
+        long universe = 1L << bits;
 
         TestingFramework framework = new TestingFramework(universe);
         framework.generateOps(
-            (int) Math.min(1L << (bits + 2), Integer.MAX_VALUE),
-            (int) Math.min(1L << (bits - 2), Integer.MAX_VALUE)
+            (int) Math.min(1L << (bits + 2), Integer.MAX_VALUE - 8),
+            (int) Math.min(1L << (bits - 2), Integer.MAX_VALUE - 8)
         );
 
         // BST
-        // TreeSet<Integer> bst = new TreeSet<>();
+        // TreeSet<Long> bst = new TreeSet<>();
         // {
         //     RunResult r = framework.runRandom(
         //             "BST",
@@ -78,27 +78,5 @@ public class Main {
             );
             System.out.println(r);
         }
-
-        // Test Correctness
-        // for (int x = 0; x < universe; x++) {
-        //     boolean b0 = bst.contains(x);
-        //     boolean b1 = xFast1.query(x);
-        //      boolean b2 = yFast.query(x);
-        //     boolean b3 = xFast8.query(x);
-        //  boolean b4 = concurrentYFast.query(x);
-
-            // if (b2 != b4) {
-            //     throw new RuntimeException("Existence mismatch (concurrentYFast) at x=" + x + " yFast=" + b2 + " concurrentYFast=" + b4);
-            // }
-            // if (b0 != b2) {
-            //     throw new RuntimeException("Existence mismatch (YFAST) at x=" + x + " bst=" + b0 + " yfast=" + b2);
-            // }
-        //     if (b0 != b3) {
-        //         throw new RuntimeException("Existence mismatch (XFast8) at x=" + x + " bst=" + b0 + " xfast=" + b3);
-        //     }
-        //     if (b0 != b4) {
-        //         throw new RuntimeException("Existence mismatch (ConcurrentYFast) at x=" + x + " bst=" + b0 + " concurrentYFast=" + b4);
-        //     }
-        // }
     }
 }

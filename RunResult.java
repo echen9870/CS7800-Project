@@ -5,10 +5,10 @@ public class RunResult {
     public double queryTimeSeconds;
     public double successorTimeSeconds;
 
-    public int n;
-    public int universe;
+    public long n;
+    public long universe;
 
-    public RunResult(String name, int n, int universe,
+    public RunResult(String name, long n, long universe,
                      double insertTimeSeconds, double queryTimeSeconds, double successorTimeSeconds) {
         this.name = name;
         this.n = n;

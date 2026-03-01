@@ -10,12 +10,12 @@ public class ConcurrentYFastTree {
         this.xfast = new XFastTree(b);
     }
 
-    public boolean query(int x) {
+    public boolean query(long x) {
         // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to query it
         while (true) {
             // Locate owning bucket via xfast (optimistic first, then pessimistic)
             long lock = xfast.rw.tryOptimisticRead();
-            Integer rep = null;
+            Long rep = null;
             XFastTree.Node node = null;
             try {
                 rep = xfast.predecessorNoLock(x);
@@ -40,7 +40,7 @@ public class ConcurrentYFastTree {
             // node.next is only modified while holding the bucket writeLock
             // so the bucket stamp covers it
             lock = node.bucketRw.tryOptimisticRead();
-            int[] nums = node.nums;
+            long[] nums = node.nums;
             int numsSize = node.numsSize;
             XFastTree.Node freshNextNode = node.next;
 
@@ -67,12 +67,12 @@ public class ConcurrentYFastTree {
     }
 
     // smallest key >= x, or null if none
-    public Integer successor(int x) {
+    public Long successor(long x) {
         // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to query it
         while (true) {
             // Locate owning bucket via xfast (optimistic first, then pessimistic)
             long lock = xfast.rw.tryOptimisticRead();
-            Integer rep = null;
+            Long rep = null;
             XFastTree.Node node = null;
             try {
                 rep = xfast.predecessorNoLock(x);
@@ -96,7 +96,7 @@ public class ConcurrentYFastTree {
 
             // Read the bucket and read node.next
             lock = node.bucketRw.tryOptimisticRead();
-            int[] nums = node.nums;
+            long[] nums = node.nums;
             int numsSize = node.numsSize;
             XFastTree.Node freshNextNode = node.next;
 
@@ -112,7 +112,7 @@ public class ConcurrentYFastTree {
             }
 
             // Binary search within this bucket
-            int last = nums[numsSize - 1];
+            long last = nums[numsSize - 1];
             if (x <= last) {
                 int idx = Arrays.binarySearch(nums, 0, numsSize, x);
                 if (idx >= 0) return nums[idx];
@@ -128,13 +128,13 @@ public class ConcurrentYFastTree {
         }
     }
 
-    public void insert(int x) {
+    public void insert(long x) {
         int maxSize = 128 * bits;
         // We have to do a loop here because the buckets might actually be modified by another thread when we are trying to modify it
         while (true) {
             // locate owning bucket — optimistic first, then pessimistic
             long lock = xfast.rw.tryOptimisticRead();
-            Integer rep = null;
+            Long rep = null;
             XFastTree.Node node = null;
             try {
                 rep = xfast.predecessorNoLock(x);
@@ -158,7 +158,7 @@ public class ConcurrentYFastTree {
                 lock = xfast.rw.writeLock();
                 try {
                     if (xfast.predecessorNoLock(x) != null) continue;
-                    int[] nums = new int[maxSize];
+                    long[] nums = new long[maxSize];
                     nums[0] = x;
                     xfast.insertNoLock(x, nums, 1);
                     return;
@@ -171,10 +171,10 @@ public class ConcurrentYFastTree {
             lock = node.bucketRw.writeLock();
             try {
                 // stale check
-                Integer currentNextRep = (node.next != null) ? node.next.key : null;
+                Long currentNextRep = (node.next != null) ? node.next.key : null;
                 if (currentNextRep != null && x >= currentNextRep) continue;
 
-                int[] nums = node.nums;
+                long[] nums = node.nums;
                 int numsSize = node.numsSize;
                 int pos = Arrays.binarySearch(nums, 0, numsSize, x);
                 if (pos >= 0) return;
@@ -201,14 +201,14 @@ public class ConcurrentYFastTree {
     }
 
     private void splitListLocked(XFastTree.Node node, int bucketCapacity) {
-        int[] nums = node.nums;
+        long[] nums = node.nums;
         int numsSize = node.numsSize;
 
         // split in half
         int half = numsSize / 2;
 
         int newNumsSize = numsSize - half;
-        int[] newNums = new int[bucketCapacity];
+        long[] newNums = new long[bucketCapacity];
         System.arraycopy(nums, half, newNums, 0, newNumsSize);
 
         node.numsSize = half;

@@ -10,13 +10,13 @@ public class YFastTree {
         this.xfast = new XFastTree(b);
     }
 
-    public boolean query(int x) {
+    public boolean query(long x) {
         // get rep
-        Integer rep = xfast.predecessor(x);
+        Long rep = xfast.predecessor(x);
         XFastTree.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
         if (node == null) return false;
 
-        int[] nums = node.nums;
+        long[] nums = node.nums;
         int numsSize = node.numsSize;
 
         // binary search inside bucket
@@ -26,17 +26,17 @@ public class YFastTree {
     }
 
     // smallest key >= x, or null if none
-    public Integer successor(int x) {
+    public Long successor(long x) {
         // get rep
-        Integer rep = xfast.predecessor(x);
+        Long rep = xfast.predecessor(x);
         XFastTree.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
         if (node == null) return null;
 
         // get node
-        int[] nums = node.nums;
+        long[] nums = node.nums;
         int numsSize = node.numsSize;
 
-        int last = nums[numsSize - 1];
+        long last = nums[numsSize - 1];
 
         if (x <= last) {
             int idx = Arrays.binarySearch(nums, 0, numsSize, x);
@@ -55,16 +55,16 @@ public class YFastTree {
         return nums[0];
     }
 
-    public void insert(int x) {
+    public void insert(long x) {
         // max bucket size
         int maxSize = 16 * bits;
 
         // find bucket rep
-        Integer rep = xfast.predecessor(x);
+        Long rep = xfast.predecessor(x);
 
         // x is smaller than smallest rep
         if (rep == null) {
-            int[] nums = new int[maxSize];
+            long[] nums = new long[maxSize];
             nums[0] = x;
             xfast.insert(x, nums, 1);
             return;
@@ -72,7 +72,7 @@ public class YFastTree {
 
         // Get representative
         XFastTree.Node node = xfast.queryNode(rep);
-        int[] nums = node.nums;
+        long[] nums = node.nums;
         int numsSize = node.numsSize;
 
         // insert sorted
@@ -93,11 +93,11 @@ public class YFastTree {
         return;
     }
 
-    public void splitList(int rep) {
+    public void splitList(long rep) {
         XFastTree.Node node = xfast.queryNode(rep);
         if (node == null) return;
 
-        int[] nums = node.nums;
+        long[] nums = node.nums;
         int numsSize = node.numsSize;
         if (nums == null) return;
 
@@ -106,7 +106,7 @@ public class YFastTree {
         if (half <= 0 || half >= numsSize) return;
 
         int newNumsSize = numsSize - half;
-        int[] newNums = new int[16 * bits];
+        long[] newNums = new long[16 * bits];
         System.arraycopy(nums, half, newNums, 0, newNumsSize);
 
         node.numsSize = half;

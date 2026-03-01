@@ -5,7 +5,7 @@ public class OpsGenerator {
     public static final byte QUERY    = 1;
     public static final byte SUCCESSOR = 2;
 
-    public int universe;
+    public long universe;
     public int size;
     public long seed;
 
@@ -13,14 +13,14 @@ public class OpsGenerator {
     public int queryPercent;
     public int successorPercent;
 
-    public int[] keys;
+    public long[] keys;
     public byte[] types;
 
-    public OpsGenerator(int universe, int size) {
+    public OpsGenerator(long universe, int size) {
         this(universe, size, 1234567L, 50, 25, 25);
     }
 
-    public OpsGenerator(int universe, int size, long seed, int insertPercent, int queryPercent, int successorPercent) {
+    public OpsGenerator(long universe, int size, long seed, int insertPercent, int queryPercent, int successorPercent) {
         this.universe = universe;
         this.size = size;
         this.seed = seed;
@@ -29,7 +29,7 @@ public class OpsGenerator {
         this.queryPercent = queryPercent;
         this.successorPercent = successorPercent;
 
-        this.keys = new int[size];
+        this.keys = new long[size];
         this.types = new byte[size];
         this.generate();
     }
@@ -49,7 +49,7 @@ public class OpsGenerator {
             threads[t] = new Thread(() -> {
                 Random rng = new Random(threadSeed);
                 for (int i = start; i < end; i++) {
-                    this.keys[i] = rng.nextInt(this.universe);
+                    this.keys[i] = rng.nextLong() & (this.universe - 1);
                     int r = rng.nextInt(100);
                     if (r < insertThreshold) this.types[i] = INSERT;
                     else if (r < queryThreshold) this.types[i] = QUERY;

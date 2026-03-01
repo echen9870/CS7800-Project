@@ -11,14 +11,14 @@ public class TestCorrectness {
         XFastTree xFast = new XFastTree(bits);
         YFastTree yFast = new YFastTree(bits);
         ConcurrentYFastTree concurrentYFast = new ConcurrentYFastTree(bits);
-        TreeSet<Integer> bst = new TreeSet<>();
-        int universe = 1 << bits;
+        TreeSet<Long> bst = new TreeSet<>();
+        long universe = 1L << bits;
 
 
         // Insert random values into both trees
         Random rng = new Random();
         for (int i = 0; i < insertCount; i++) {
-            int value = rng.nextInt(universe);
+            long value = rng.nextLong() & (universe - 1);
             xFast.insert(value);
             yFast.insert(value);
             concurrentYFast.insert(value);
@@ -27,7 +27,7 @@ public class TestCorrectness {
 
         // Query + successor checks
         for (int i = 0; i < checkCount; i++) {
-            int key = rng.nextInt(universe);
+            long key = rng.nextLong() & (universe - 1);
 
             // Query mismatch
             if (bst.contains(key) != xFast.query(key)) {

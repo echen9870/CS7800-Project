@@ -3,11 +3,11 @@ public class TestMemory {
     public static void main(String[] args) throws Exception {
 
         int bits = Integer.parseInt(args[0]);
-        int universe = 1 << bits;
+        long universe = 1L << bits;
 
         ConcurrentYFastTree y = new ConcurrentYFastTree(bits);
 
-        for (int i = 0; i < universe; i++) {
+        for (long i = 0L; i < universe; i++) {
             y.insert(i);
         }
 
