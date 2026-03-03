@@ -7,9 +7,11 @@ import java.util.concurrent.locks.LockSupport;
 
 public class TestCorrectnessConcurrent {
 
-    // This runs a single threaded application, and puts the expected answers in expectedBool and expectedInt, we use these two arrays
-    // Call before runConcurrentAndCheck function
-    public static void runSequentialExpected(int bits, long[] keys, byte[] types, boolean[] expectedBool, Long[] expectedLong) {
+    // Runs a single-threaded application and stores expected answers in
+    // expectedBool and expectedLong.
+    // Call before runConcurrentAndCheck.
+    public static void runSequentialExpected(int bits, long[] keys, byte[] types, boolean[] expectedBool,
+            Long[] expectedLong) {
         YFastTree yfast = new YFastTree(bits);
 
         for (int i = 0; i < keys.length; i++) {
@@ -19,13 +21,18 @@ public class TestCorrectnessConcurrent {
                 yfast.insert(key);
             } else if (types[i] == OpsGenerator.QUERY) {
                 expectedBool[i] = yfast.query(key);
-            } else {
+            } else if (types[i] == OpsGenerator.SUCCESSOR) {
                 expectedLong[i] = yfast.successor(key);
+            } else if (types[i] == OpsGenerator.DELETE) {
+                yfast.delete(key);
+            } else {
+                expectedLong[i] = yfast.predecessor(key);
             }
         }
     }
 
-    public static void runConcurrentAndCheck(int bits, long[] keys, byte[] types, boolean[] expectedBool, Long[] expectedLong, int threadCount) {
+    public static void runConcurrentAndCheck(int bits, long[] keys, byte[] types, boolean[] expectedBool,
+            Long[] expectedLong, int threadCount) {
         ConcurrentYFastTree concurrent = new ConcurrentYFastTree(bits);
 
         AtomicInteger nextIndex = new AtomicInteger(0);
@@ -42,10 +49,14 @@ public class TestCorrectnessConcurrent {
 
                     while (error.get() == null) {
                         int i = nextIndex.getAndIncrement();
-                        if (i >= keys.length) break;
+                        if (i >= keys.length) {
+                            break;
+                        }
 
                         while (turn.get() != i) {
-                            if (error.get() != null) return;
+                            if (error.get() != null) {
+                                return;
+                            }
                             LockSupport.parkNanos(1L);
                         }
 
@@ -55,12 +66,24 @@ public class TestCorrectnessConcurrent {
                             concurrent.insert(key);
                         } else if (types[i] == OpsGenerator.QUERY) {
                             if (concurrent.query(key) != expectedBool[i]) {
-                                error.compareAndSet(null, new RuntimeException("QUERY mismatch at op=" + i + " key=" + key));
+                                error.compareAndSet(null,
+                                        new RuntimeException("QUERY mismatch at op=" + i + " key=" + key));
                                 return;
                             }
-                        } else {
+                        } else if (types[i] == OpsGenerator.SUCCESSOR) {
                             if (!Objects.equals(concurrent.successor(key), expectedLong[i])) {
-                                error.compareAndSet(null, new RuntimeException("SUCCESSOR mismatch at op=" + i + " key=" + key));
+                                error.compareAndSet(null, new RuntimeException("SUCCESSOR mismatch at op=" + i + " key="
+                                        + key + " expected=" + expectedLong[i] + " got=" + concurrent.successor(key)));
+                                return;
+                            }
+                        } else if (types[i] == OpsGenerator.DELETE) {
+                            concurrent.delete(key);
+                        } else {
+                            if (!Objects.equals(concurrent.predecessor(key), expectedLong[i])) {
+                                error.compareAndSet(null,
+                                        new RuntimeException(
+                                                "PREDECESSOR mismatch at op=" + i + " key=" + key + " expected="
+                                                        + expectedLong[i] + " got=" + concurrent.predecessor(key)));
                                 return;
                             }
                         }
@@ -86,7 +109,9 @@ public class TestCorrectnessConcurrent {
         }
 
         RuntimeException e = error.get();
-        if (e != null) throw e;
+        if (e != null) {
+            throw e;
+        }
     }
 
     public static void main(String[] args) {
@@ -96,7 +121,8 @@ public class TestCorrectnessConcurrent {
         int opCount = 1 << 20;
         int threadCount = 1;
 
-        OpsGenerator gen = new OpsGenerator(universe, opCount, 123456789, 80, 10, 10);
+        // 60% inserts, 10% queries, 10% successors, 10% deletes, 10% predecessors
+        OpsGenerator gen = new OpsGenerator(universe, opCount, 123456789, 60, 10, 10, 10, 10);
 
         boolean[] expectedBool = new boolean[opCount];
         Long[] expectedLong = new Long[opCount];
