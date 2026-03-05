@@ -46,10 +46,10 @@ public class XFastTree {
     public HashMap<Long, InternalNode>[] level;
 
     // start/end of leaf linked list
-    public Node headLeaf;
-    public Node tailLeaf;
+    public volatile Node headLeaf;
+    public volatile Node tailLeaf;
 
-    public int size;
+    public long size;
 
     // One write at a time, multiple (query, successor, predecessor) reads at a time
     public final StampedLock rw = new StampedLock();
@@ -71,226 +71,6 @@ public class XFastTree {
         this.size = 0;
     }
 
-    public int bitAtDepth(long x, int depth) {
-        int shift = this.bits - depth - 1;
-        return (int) ((x >>> shift) & 1);
-    }
-
-    // Note: Don't call public functions that use locks inside of each other, as it
-    // might lead to deadlocks
-    public boolean query(long x) {
-        long stamp = rw.tryOptimisticRead();
-        boolean result = queryNoLock(x);
-        if (!rw.validate(stamp)) {
-            stamp = rw.readLock();
-            try {
-                result = queryNoLock(x);
-            } finally {
-                rw.unlockRead(stamp);
-            }
-        }
-        return result;
-    }
-
-    boolean queryNoLock(long x) {
-        return this.level[this.bits].containsKey(x);
-    }
-
-    public Node queryNode(long x) {
-        long stamp = rw.tryOptimisticRead();
-        Node result = queryNodeNoLock(x);
-        if (!rw.validate(stamp)) {
-            stamp = rw.readLock();
-            try {
-                result = queryNodeNoLock(x);
-            } finally {
-                rw.unlockRead(stamp);
-            }
-        }
-        return result;
-    }
-
-    Node queryNodeNoLock(long x) {
-        return (Node) this.level[this.bits].get(x);
-    }
-
-    int longestPrefixLenNoLock(long x) {
-        int low = 1; // level 0 (root) always exists, skip it
-        int high = this.bits - 1;
-
-        while (low < high) {
-            int mid = (low + high + 1) / 2;
-            long prefix = x >>> (bits - mid);
-
-            if (this.level[mid].containsKey(prefix)) {
-                low = mid;
-            } else {
-                high = mid - 1;
-            }
-        }
-        return low;
-    }
-
-    Long successorNoLock(long x) {
-        // If element exists, return itself
-        if (queryNoLock(x))
-            return x;
-
-        // If tree is empty or x > largest element return null
-        if (this.headLeaf == null || x > this.tailLeaf.key)
-            return null;
-
-        // If x <= smallest element return the smallest element
-        if (x <= this.headLeaf.key)
-            return this.headLeaf.key;
-
-        // Find the node located at the longest prefix length
-        int prefixLen = longestPrefixLenNoLock(x);
-        long prefix = x >>> (bits - prefixLen);
-        InternalNode node = this.level[prefixLen].get(prefix);
-
-        int nextBit = bitAtDepth(x, prefixLen);
-
-        // If our next bit is 0
-        if (nextBit == 0) {
-            // If right child exists, return the smallest descendant in the right child,
-            // else just return the largest key in this leaf
-            long rightChildPrefix = (prefix << 1) | 1;
-            InternalNode rightChild = this.level[prefixLen + 1].get(rightChildPrefix);
-            if (rightChild != null)
-                return rightChild.minLeaf.key;
-        }
-        return node.maxLeaf.next.key;
-    }
-
-    // callers holding rw lock should use this directly
-    Long predecessorNoLock(long x) {
-        // If element exists, return itself
-        if (queryNoLock(x))
-            return x;
-
-        // If tree is empty or x < smallest element
-        if (this.headLeaf == null || x < this.headLeaf.key)
-            return null;
-
-        // If x >= largest element in tree
-        if (x >= this.tailLeaf.key)
-            return this.tailLeaf.key;
-
-        // Find successor and return the prev
-        Long successorKey = successorNoLock(x);
-        Node successorLeaf = queryNodeNoLock(successorKey);
-        return successorLeaf.prev.key;
-    }
-
-    // smallest key >= x, or null if none
-    public Long successor(long x) {
-        long stamp = rw.tryOptimisticRead();
-        Long result = null;
-        try {
-            result = successorNoLock(x);
-        } catch (NullPointerException e) {
-            stamp = 0;
-        }
-        if (!rw.validate(stamp)) {
-            stamp = rw.readLock();
-            try {
-                result = successorNoLock(x);
-            } finally {
-                rw.unlockRead(stamp);
-            }
-        }
-        return result;
-    }
-
-    // largest key <= x, or null if none
-    public Long predecessor(long x) {
-        long stamp = rw.tryOptimisticRead();
-        Long result = null;
-        try {
-            result = predecessorNoLock(x);
-        } catch (NullPointerException e) {
-            stamp = 0;
-        }
-        if (!rw.validate(stamp)) {
-            stamp = rw.readLock();
-            try {
-                result = predecessorNoLock(x);
-            } finally {
-                rw.unlockRead(stamp);
-            }
-        }
-        return result;
-    }
-
-    // ----------------
-    // DELETE
-    // ----------------
-
-    public boolean delete(long x) {
-        long stamp = rw.writeLock();
-        try {
-            return deleteNoLock(x);
-        } finally {
-            rw.unlockWrite(stamp);
-        }
-    }
-
-    // Caller must hold writeLock
-    boolean deleteNoLock(long x) {
-        Node leaf = (Node) this.level[this.bits].get(x);
-        if (leaf == null)
-            return false;
-
-        Node prevLeaf = leaf.prev;
-        Node nextLeaf = leaf.next;
-
-        // Unlink from doubly linked list
-        if (prevLeaf != null)
-            prevLeaf.next = nextLeaf;
-        else
-            this.headLeaf = nextLeaf;
-
-        if (nextLeaf != null)
-            nextLeaf.prev = prevLeaf;
-        else
-            this.tailLeaf = prevLeaf;
-
-        // Remove from leaf level
-        this.level[this.bits].remove(x);
-        this.size--;
-
-        // Walk up the trie: remove or update ancestor nodes
-        for (int depth = this.bits - 1; depth >= 0; depth--) {
-            long prefix = (depth == 0) ? 0L : (x >>> (bits - depth));
-            InternalNode node = this.level[depth].get(prefix);
-            
-            long leftPrefix = prefix << 1;
-            long rightPrefix = (prefix << 1) | 1;
-            InternalNode leftChild = this.level[depth + 1].get(leftPrefix);
-            InternalNode rightChild = this.level[depth + 1].get(rightPrefix);
-
-            if (leftChild == null && rightChild == null) {
-                if (depth == 0) {
-                    // Keep root but clear min/max
-                    node.minLeaf = null;
-                    node.maxLeaf = null;
-                } else {
-                    this.level[depth].remove(prefix);
-                }
-            } else {
-                node.minLeaf = (leftChild != null) ? leftChild.minLeaf : rightChild.minLeaf;
-                node.maxLeaf = (rightChild != null) ? rightChild.maxLeaf : leftChild.maxLeaf;
-            }
-        }
-
-        return true;
-    }
-
-    // ----------------
-    // WRITE HELPERS
-    // ----------------
-
     // Caller must hold writeLock
     private void linkBetweenNoLock(Node leaf, Node predecessorNode, Node successorNode) {
         leaf.prev = predecessorNode;
@@ -309,9 +89,178 @@ public class XFastTree {
         }
     }
 
-    // ----------------
-    // WRITE
-    // ----------------
+    // Note: Don't call public functions that use locks inside of each other, as it
+    // might lead to deadlocks
+    public boolean query(long x) {
+        while (true) {
+            long stamp = rw.tryOptimisticRead();
+            boolean result = queryNoLock(x);
+            if (rw.validate(stamp)) return result;
+        }
+    }
+
+    boolean queryNoLock(long x) {
+        return this.level[this.bits].containsKey(x);
+    }
+
+    public Node queryNode(long x) {
+        while (true) {
+            long stamp = rw.tryOptimisticRead();
+            Node result = queryNodeNoLock(x);
+            if (rw.validate(stamp)) return result;
+        }
+    }
+
+    Node queryNodeNoLock(long x) {
+        return (Node) this.level[this.bits].get(x);
+    }
+
+    int longestPrefixLenNoLock(long x) {
+        int low = 1; // level 0 (root) always exists, skip it
+        int high = this.bits - 1;
+
+        while (low < high) {
+            int mid = (low + high + 1) / 2;
+            if (this.level[mid].containsKey(x >>> (bits - mid))) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return low;
+    }
+
+    // Assumes x is NOT in the tree. Returns the successor Node, or null if none.
+    // prefix = x >>> (bits - depth) is 0 at depth=0 for any valid key (x < 2^bits).
+    private Node successorNodeNoLock(long x) {
+        Node head = this.headLeaf;
+        if (head == null) return null;
+        Node tail = this.tailLeaf;
+        if (x > tail.key) return null;
+        if (x <= head.key) return head;
+
+        int prefixLen = longestPrefixLenNoLock(x);
+        long prefix = x >>> (bits - prefixLen);
+        InternalNode node = this.level[prefixLen].get(prefix);
+        if (node == null) return null;
+
+        int bitAtDepth = ((byte) (x >>> (this.bits - prefixLen - 1)) & 1);
+        if (bitAtDepth == 0) {
+            InternalNode rightChild = this.level[prefixLen + 1].get((prefix << 1) | 1);
+            if (rightChild != null) {
+                Node minLeaf = rightChild.minLeaf;
+                if (minLeaf != null) return minLeaf;
+            }
+        }
+        Node maxLeaf = node.maxLeaf;
+        return maxLeaf != null ? maxLeaf.next : null;
+    }
+
+    Long successorNoLock(long x) {
+        if (queryNoLock(x)) return x;
+        Node n = successorNodeNoLock(x);
+        return n != null ? n.key : null;
+    }
+
+    // smallest key >= x, or null if none
+    public Long successor(long x) {
+        while (true) {
+            long stamp = rw.tryOptimisticRead();
+            Long result = successorNoLock(x);
+            if (rw.validate(stamp)) return result;
+        }
+    }
+
+    // Returns the predecessor Node of x, or x's own Node if x is in the tree.
+    // We just piggyback on top of the actual successor function
+    Node predecessorNodeNoLock(long x) {
+        Node existing = queryNodeNoLock(x);
+        if (existing != null) return existing;
+        Node head = this.headLeaf;
+        if (head == null || x < head.key) return null;
+        Node tail = this.tailLeaf;
+        if (x >= tail.key) return tail;
+        Node succ = successorNodeNoLock(x);
+        return succ != null ? succ.prev : null;
+    }
+
+    // callers holding rw lock should use this directly
+    Long predecessorNoLock(long x) {
+        Node n = predecessorNodeNoLock(x);
+        return n != null ? n.key : null;
+    }
+
+    // largest key <= x, or null if none
+    public Long predecessor(long x) {
+        while (true) {
+            long stamp = rw.tryOptimisticRead();
+            Long result = predecessorNoLock(x);
+            if (rw.validate(stamp)) return result;
+        }
+    }
+
+    public boolean delete(long x) {
+        long stamp = rw.writeLock();
+        try {
+            return deleteNoLock(x);
+        } finally {
+            rw.unlockWrite(stamp);
+        }
+    }
+
+    // Caller must hold writeLock
+    boolean deleteNoLock(long x) {
+        Node leaf = (Node) this.level[this.bits].remove(x);
+        if (leaf == null) return false;
+
+        this.size--;
+
+        Node prevLeaf = leaf.prev;
+        Node nextLeaf = leaf.next;
+
+        // Unlink from doubly linked list
+        if (prevLeaf != null)
+            prevLeaf.next = nextLeaf;
+        else
+            this.headLeaf = nextLeaf;
+
+        if (nextLeaf != null)
+            nextLeaf.prev = prevLeaf;
+        else
+            this.tailLeaf = prevLeaf;
+
+        // Walk up the trie: remove or update ancestor nodes.
+        // Break early once a node's min/max are unchanged — ancestors are unaffected.
+        for (int depth = this.bits - 1; depth >= 0; depth--) {
+            long prefix = x >>> (bits - depth);
+
+            InternalNode leftChild  = this.level[depth + 1].get(prefix << 1);
+            InternalNode rightChild = this.level[depth + 1].get((prefix << 1) | 1);
+
+            if (leftChild == null && rightChild == null) {
+                if (depth == 0) {
+                    // root stays — always at key 0, just clear its pointers
+                    InternalNode root = this.level[0].get(0L);
+                    root.minLeaf = null;
+                    root.maxLeaf = null;
+                } else {
+                    this.level[depth].remove(prefix);
+                }
+            } else {
+                // only look up the parent when we actually need to update it
+                InternalNode node = this.level[depth].get(prefix);
+                Node newMin = (leftChild != null) ? leftChild.minLeaf : rightChild.minLeaf;
+                Node newMax = (rightChild != null) ? rightChild.maxLeaf : leftChild.maxLeaf;
+                // Early break
+                if (node.minLeaf == newMin && node.maxLeaf == newMax)
+                    break;
+                node.minLeaf = newMin;
+                node.maxLeaf = newMax;
+            }
+        }
+
+        return true;
+    }
 
     public boolean insert(long x) {
         return insert(x, null, 0);
@@ -328,34 +277,35 @@ public class XFastTree {
 
     // callers already holding rw writeLock should use this directly
     boolean insertNoLock(long x, long[] list, int listSize) {
-        if (queryNoLock(x))
-            return false;
+        if (queryNoLock(x)) return false;
 
-        // Create the leaf and link it in the linked list
         Node leaf = new Node(x, list, listSize);
 
-        Long successorKey = successorNoLock(x);
-        Node successorNode = (successorKey != null) ? queryNodeNoLock(successorKey) : null;
+        Node successorNode = successorNodeNoLock(x);
         Node predecessorNode = (successorNode != null) ? successorNode.prev : this.tailLeaf;
 
         linkBetweenNoLock(leaf, predecessorNode, successorNode);
         this.level[this.bits].put(x, leaf);
 
-        // Insert upwards
-        for (int depth = 0; depth < this.bits; depth++) {
-            long prefix = (depth == 0) ? 0L : (x >>> (bits - depth));
+        // Walk bottom-up (bits-1 → 0): create or update ancestor nodes.
+        // Breaking early if node exists and min max doesn't change
+        for (int depth = this.bits - 1; depth >= 0; depth--) {
+            long prefix = x >>> (bits - depth);
             InternalNode node = this.level[depth].get(prefix);
-            // Initialize node if not initialized
+            boolean canBreak = false;
             if (node == null) {
-                node = new InternalNode(leaf, leaf);
-                this.level[depth].put(prefix, node);
+                this.level[depth].put(prefix, new InternalNode(leaf, leaf));
             } else {
-                // Set min and max
-                if (node.minLeaf == null || leaf.key < node.minLeaf.key)
+                if (node.minLeaf == null || leaf.key < node.minLeaf.key) {
                     node.minLeaf = leaf;
-                if (node.maxLeaf == null || leaf.key > node.maxLeaf.key)
+                    canBreak = true;
+                }
+                if (node.maxLeaf == null || leaf.key > node.maxLeaf.key) {
                     node.maxLeaf = leaf;
-            }            
+                    canBreak = true;
+                }
+                if (canBreak) break;
+            }
         }
         this.size += 1;
         return true;
