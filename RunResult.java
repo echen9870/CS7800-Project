@@ -1,28 +1,28 @@
 public class RunResult {
     public String name;
-
-    public double insertTimeSeconds;
-    public double queryTimeSeconds;
-    public double successorTimeSeconds;
-
     public long n;
     public long universe;
+    public double timeSeconds;
 
-    public RunResult(String name, long n, long universe,
-            double insertTimeSeconds, double queryTimeSeconds, double successorTimeSeconds) {
+    public RunResult(String name, long n, long universe, double timeSeconds) {
         this.name = name;
         this.n = n;
         this.universe = universe;
+        this.timeSeconds = timeSeconds;
+    }
 
-        this.insertTimeSeconds = insertTimeSeconds;
-        this.queryTimeSeconds = queryTimeSeconds;
-        this.successorTimeSeconds = successorTimeSeconds;
+    public double nsPerOp() {
+        return timeSeconds * 1e9 / n;
+    }
+
+    public double mopsPerSec() {
+        return n / timeSeconds / 1e6;
     }
 
     @Override
     public String toString() {
         return String.format(
-                "RunResult{name='%s', n=%d, universe=%d, insert=%.6f, query=%.6f, successor=%.6f}",
-                name, n, universe, insertTimeSeconds, queryTimeSeconds, successorTimeSeconds);
+            "RunResult{name='%s', n=%d, universe=%d, totalTime=%.6f, ns_per_op=%.2f, Mops_per_s=%.2f}",
+            name, n, universe, timeSeconds, nsPerOp(), mopsPerSec());
     }
 }

@@ -292,10 +292,10 @@ public class XFastTree {
         for (int depth = this.bits - 1; depth >= 0; depth--) {
             long prefix = x >>> (bits - depth);
             InternalNode node = this.level[depth].get(prefix);
-            boolean canBreak = false;
             if (node == null) {
                 this.level[depth].put(prefix, new InternalNode(leaf, leaf));
             } else {
+                boolean canBreak = false;
                 if (node.minLeaf == null || leaf.key < node.minLeaf.key) {
                     node.minLeaf = leaf;
                     canBreak = true;
@@ -304,7 +304,7 @@ public class XFastTree {
                     node.maxLeaf = leaf;
                     canBreak = true;
                 }
-                if (canBreak) break;
+                if (!canBreak) break;
             }
         }
         this.size += 1;
