@@ -1,13 +1,13 @@
 import java.util.*;
 
-public class YFastTree {
+public class YFastTrie {
     public int bits = 0;
 
-    public XFastTree xfast;
+    public XFastTrie xfast;
 
-    public YFastTree(int b) {
+    public YFastTrie(int b) {
         this.bits = b;
-        this.xfast = new XFastTree(b);
+        this.xfast = new XFastTrie(b);
     }
 
     public boolean query(long x) {
@@ -15,7 +15,7 @@ public class YFastTree {
         Long rep = xfast.predecessor(x);
         if (rep == null)
             return false;
-        XFastTree.Node node = xfast.queryNode(rep);
+        XFastTrie.Node node = xfast.queryNode(rep);
 
         long[] nums = node.nums;
         int numsSize = node.numsSize;
@@ -30,7 +30,7 @@ public class YFastTree {
     public Long successor(long x) {
         // get rep
         Long rep = xfast.predecessor(x);
-        XFastTree.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
+        XFastTrie.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
 
         // get node
         long[] nums = node.nums;
@@ -66,7 +66,7 @@ public class YFastTree {
         }
 
         // Get representative
-        XFastTree.Node node = xfast.queryNode(rep);
+        XFastTrie.Node node = xfast.queryNode(rep);
         long[] nums = node.nums;
         int numsSize = node.numsSize;
 
@@ -94,7 +94,7 @@ public class YFastTree {
             return null;
 
         // Find predecessor bucket
-        XFastTree.Node node = xfast.queryNode(rep);
+        XFastTrie.Node node = xfast.queryNode(rep);
         long[] nums = node.nums;
         int numsSize = node.numsSize;
 
@@ -111,7 +111,7 @@ public class YFastTree {
         if (rep == null)
             return false;
 
-        XFastTree.Node node = xfast.queryNode(rep);
+        XFastTrie.Node node = xfast.queryNode(rep);
         long[] nums = node.nums;
         int numsSize = node.numsSize;
 
@@ -138,7 +138,7 @@ public class YFastTree {
 
     public void splitList(long rep) {
         // query node and nums
-        XFastTree.Node node = xfast.queryNode(rep);
+        XFastTrie.Node node = xfast.queryNode(rep);
         long[] nums = node.nums;
         int numsSize = node.numsSize;
 

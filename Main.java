@@ -23,8 +23,8 @@ public class Main {
                 x -> bst.ceiling(x));
         System.out.println(bstResult);
 
-        ConcurrentYFastTree concurrentYFast = new ConcurrentYFastTree(bits);
-        RunResult yFastResult = framework.benchmarkRandom("ConcurrentYFastTree", 16, opCount, fillCount,
+        ConcurrentYFastTrie concurrentYFast = new ConcurrentYFastTrie(bits, new XFastTrie(bits));
+        RunResult yFastResult = framework.benchmarkRandom("ConcurrentYFastTrie", 16, opCount, fillCount,
                 x -> concurrentYFast.insert(x),
                 x -> concurrentYFast.query(x),
                 x -> concurrentYFast.successor(x));
@@ -39,25 +39,18 @@ public class Main {
         TestingFramework framework = new TestingFramework();
         framework.generateBenchmarkOps(opCount);
 
-        System.out.println("TreeSet (1 thread)");
-        TreeSet<Long> bst = new TreeSet<>();
-        System.out.println(framework.benchmark("TreeSet", 1, "insert", x -> bst.add(x)));
-        System.out.println(framework.benchmark("TreeSet", 1, "query", x -> bst.contains(x)));
-        System.out.println(framework.benchmark("TreeSet", 1, "successor", x -> bst.ceiling(x)));
-        System.out.println(framework.benchmark("TreeSet", 1, "delete", x -> bst.remove(x)));
+        System.out.println("ConcurrentYFastTrie + XFastTrie backend (16 threads)");
+        ConcurrentYFastTrie yFast = new ConcurrentYFastTrie(31, new XFastTrie(31));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "insert", x -> yFast.insert(x)));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "query", x -> yFast.query(x)));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "successor", x -> yFast.successor(x)));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "delete", x -> yFast.delete(x)));
 
-        System.out.println("ConcurrentSkipListSet (16 threads)");
-        ConcurrentSkipListSet<Long> skipList = new ConcurrentSkipListSet<>();
-        System.out.println(framework.benchmark("ConcurrentSkipListSet", 16, "insert", x -> skipList.add(x)));
-        System.out.println(framework.benchmark("ConcurrentSkipListSet", 16, "query", x -> skipList.contains(x)));
-        System.out.println(framework.benchmark("ConcurrentSkipListSet", 16, "successor", x -> skipList.ceiling(x)));
-        System.out.println(framework.benchmark("ConcurrentSkipListSet", 16, "delete", x -> skipList.remove(x)));
-
-        System.out.println("ConcurrentYFastTree (16 threads)");
-        ConcurrentYFastTree yFast = new ConcurrentYFastTree(31);
-        System.out.println(framework.benchmark("ConcurrentYFastTree", 16, "insert", x -> yFast.insert(x)));
-        System.out.println(framework.benchmark("ConcurrentYFastTree", 16, "query", x -> yFast.query(x)));
-        System.out.println(framework.benchmark("ConcurrentYFastTree", 16, "successor", x -> yFast.successor(x)));
-        System.out.println(framework.benchmark("ConcurrentYFastTree", 16, "delete", x -> yFast.delete(x)));
+        System.out.println("ConcurrentYFastTrie + ConcurrentXFastTrie backend (16 threads)");
+        ConcurrentYFastTrie yFastCX = new ConcurrentYFastTrie(31, new ConcurrentXFastTrie(31));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "insert", x -> yFastCX.insert(x)));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "query", x -> yFastCX.query(x)));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "successor", x -> yFastCX.successor(x)));
+        System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "delete", x -> yFastCX.delete(x)));
     }
 }

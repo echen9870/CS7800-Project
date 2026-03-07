@@ -1,11 +1,11 @@
 import java.util.HashMap;
 import java.util.concurrent.locks.StampedLock;
 
-public class XFastTree {
+public class XFastTrie implements XFastTrieInterface {
     // Internal trie nodes only need min/max leaf pointers
     public static class InternalNode {
-        public Node minLeaf;
-        public Node maxLeaf;
+        public volatile Node minLeaf;
+        public volatile Node maxLeaf;
 
         public InternalNode(Node minLeaf, Node maxLeaf) {
             this.minLeaf = minLeaf;
@@ -17,12 +17,12 @@ public class XFastTree {
     public static class Node extends InternalNode {
 
         // Doubly linked list for the leaf nodes
-        public Node prev;
-        public Node next;
+        public volatile Node prev;
+        public volatile Node next;
 
         // The sub universe for the leaf node X-Fast trie in a Y-Fast Trie
         public long[] nums;
-        public int numsSize;
+        public volatile int numsSize;
 
         // Val
         public long key;
@@ -55,7 +55,7 @@ public class XFastTree {
     public final StampedLock rw = new StampedLock();
 
     @SuppressWarnings("unchecked")
-    public XFastTree(int bits) {
+    public XFastTrie(int bits) {
         this.bits = bits;
 
         this.level = new HashMap[bits + 1];
@@ -69,6 +69,12 @@ public class XFastTree {
         this.tailLeaf = null;
 
         this.size = 0;
+    }
+
+    public StampedLock getTreeLock() { return rw; }
+
+    public Node getHeadLeaf() { 
+        return this.headLeaf; 
     }
 
     // Caller must hold writeLock
@@ -87,6 +93,21 @@ public class XFastTree {
         } else {
             this.tailLeaf = leaf;
         }
+    }
+
+        int longestPrefixLenNoLock(long x) {
+        int low = 1; // level 0 (root) always exists, skip it
+        int high = this.bits - 1;
+
+        while (low < high) {
+            int mid = (low + high + 1) / 2;
+            if (this.level[mid].containsKey(x >>> (bits - mid))) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return low;
     }
 
     // Note: Don't call public functions that use locks inside of each other, as it
@@ -115,19 +136,13 @@ public class XFastTree {
         return (Node) this.level[this.bits].get(x);
     }
 
-    int longestPrefixLenNoLock(long x) {
-        int low = 1; // level 0 (root) always exists, skip it
-        int high = this.bits - 1;
-
-        while (low < high) {
-            int mid = (low + high + 1) / 2;
-            if (this.level[mid].containsKey(x >>> (bits - mid))) {
-                low = mid;
-            } else {
-                high = mid - 1;
-            }
+    // smallest key >= x, or null if none
+    public Long successor(long x) {
+        while (true) {
+            long stamp = rw.tryOptimisticRead();
+            Long result = successorNoLock(x);
+            if (rw.validate(stamp)) return result;
         }
-        return low;
     }
 
     // Assumes x is NOT in the tree. Returns the successor Node, or null if none.
@@ -162,18 +177,28 @@ public class XFastTree {
         return n != null ? n.key : null;
     }
 
-    // smallest key >= x, or null if none
-    public Long successor(long x) {
+    public Node predecessorNode(long x) {
         while (true) {
             long stamp = rw.tryOptimisticRead();
-            Long result = successorNoLock(x);
-            if (rw.validate(stamp)) return result;
+            Node result = predecessorNodeNoLock(x);
+            if (rw.validate(stamp))
+                return result;
+        }
+    }
+
+    // largest key <= x, or null if none
+    public Long predecessor(long x) {
+        while (true) {
+            long stamp = rw.tryOptimisticRead();
+            Long result = predecessorNoLock(x);
+            if (rw.validate(stamp))
+                return result;
         }
     }
 
     // Returns the predecessor Node of x, or x's own Node if x is in the tree.
     // We just piggyback on top of the actual successor function
-    Node predecessorNodeNoLock(long x) {
+    public Node predecessorNodeNoLock(long x) {
         Node existing = queryNodeNoLock(x);
         if (existing != null) return existing;
         Node head = this.headLeaf;
@@ -190,15 +215,6 @@ public class XFastTree {
         return n != null ? n.key : null;
     }
 
-    // largest key <= x, or null if none
-    public Long predecessor(long x) {
-        while (true) {
-            long stamp = rw.tryOptimisticRead();
-            Long result = predecessorNoLock(x);
-            if (rw.validate(stamp)) return result;
-        }
-    }
-
     public boolean delete(long x) {
         long stamp = rw.writeLock();
         try {
@@ -209,7 +225,7 @@ public class XFastTree {
     }
 
     // Caller must hold writeLock
-    boolean deleteNoLock(long x) {
+    public boolean deleteNoLock(long x) {
         Node leaf = (Node) this.level[this.bits].remove(x);
         if (leaf == null) return false;
 
@@ -276,7 +292,7 @@ public class XFastTree {
     }
 
     // callers already holding rw writeLock should use this directly
-    boolean insertNoLock(long x, long[] list, int listSize) {
+    public boolean insertNoLock(long x, long[] list, int listSize) {
         if (queryNoLock(x)) return false;
 
         Node leaf = new Node(x, list, listSize);
