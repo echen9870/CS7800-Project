@@ -1,3 +1,5 @@
+package xFast;
+
 import java.util.concurrent.locks.StampedLock;
 
 public interface XFastTrieInterface {

@@ -1,3 +1,5 @@
+package xFast;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.StampedLock;
@@ -15,7 +17,7 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
     public final AtomicLong size = new AtomicLong(0);
 
     // lowestFullLevel: deepest level d where all 2^d nodes exist.
-    // locks[]: one StampedLock per node at the LFL 
+    // locks[]: one StampedLock per node at the LFL
     // levelLock: global lock — readLock held during ops, writeLock only during LFL transitions.
     public volatile int lowestFullLevel;
     public volatile StampedLock[] locks;

@@ -1,3 +1,5 @@
+package xFast;
+
 import java.util.HashMap;
 import java.util.concurrent.locks.StampedLock;
 
@@ -73,8 +75,8 @@ public class XFastTrie implements XFastTrieInterface {
 
     public StampedLock getLock(long x) { return rw; }
 
-    public Node getHeadLeaf() { 
-        return this.headLeaf; 
+    public Node getHeadLeaf() {
+        return this.headLeaf;
     }
 
     // Caller must hold writeLock

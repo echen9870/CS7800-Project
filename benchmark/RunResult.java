@@ -1,3 +1,5 @@
+package benchmark;
+
 public class RunResult {
     public String name;
     public long n;

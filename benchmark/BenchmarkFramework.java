@@ -1,3 +1,5 @@
+package benchmark;
+
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
@@ -38,10 +40,10 @@ public class BenchmarkFramework {
 
         }
         for (Thread thread : fillThreads) {
-            try { 
-                thread.join(); 
-            } catch (InterruptedException e) { 
-                Thread.currentThread().interrupt(); 
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
 
@@ -109,12 +111,12 @@ public class BenchmarkFramework {
 
         boolean interrupted = false;
         while (true) {
-            try { 
-                doneLatch.await(); 
-                break; 
+            try {
+                doneLatch.await();
+                break;
             }
-            catch (InterruptedException e) { 
-                interrupted = true; 
+            catch (InterruptedException e) {
+                interrupted = true;
             }
         }
         long elapsed = System.nanoTime() - start;
