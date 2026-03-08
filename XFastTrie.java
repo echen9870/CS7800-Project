@@ -71,7 +71,7 @@ public class XFastTrie implements XFastTrieInterface {
         this.size = 0;
     }
 
-    public StampedLock getTreeLock() { return rw; }
+    public StampedLock getLock(long x) { return rw; }
 
     public Node getHeadLeaf() { 
         return this.headLeaf; 
@@ -181,8 +181,7 @@ public class XFastTrie implements XFastTrieInterface {
         while (true) {
             long stamp = rw.tryOptimisticRead();
             Node result = predecessorNodeNoLock(x);
-            if (rw.validate(stamp))
-                return result;
+            if (rw.validate(stamp)) return result;
         }
     }
 
@@ -191,8 +190,7 @@ public class XFastTrie implements XFastTrieInterface {
         while (true) {
             long stamp = rw.tryOptimisticRead();
             Long result = predecessorNoLock(x);
-            if (rw.validate(stamp))
-                return result;
+            if (rw.validate(stamp)) return result;
         }
     }
 
@@ -210,7 +208,7 @@ public class XFastTrie implements XFastTrieInterface {
     }
 
     // callers holding rw lock should use this directly
-    Long predecessorNoLock(long x) {
+    public Long predecessorNoLock(long x) {
         Node n = predecessorNodeNoLock(x);
         return n != null ? n.key : null;
     }

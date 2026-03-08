@@ -42,7 +42,7 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
     // Single volatile read of locks[] — derives lfl from length to avoid TOCTOU
     // with lowestFullLevel. locks.length = 2^lfl, so lfl = numberOfTrailingZeros(length).
     // Used internally by ConcurrentXFastTrie's own public insert/delete/query.
-    public StampedLock getRwLock(long x) {
+    public StampedLock getLock(long x) {
         StampedLock[] snap = locks;
         int lfl = Integer.numberOfTrailingZeros(snap.length);
         return snap[(int)(x >>> (bits - lfl))];
@@ -89,7 +89,7 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
     // might lead to deadlocks
     public boolean query(long x) {
         while (true) {
-            StampedLock fgl = getRwLock(x);
+            StampedLock fgl = getLock(x);
             long stamp = fgl.tryOptimisticRead();
             boolean result = queryNoLock(x);
             if (fgl.validate(stamp)) return result;
@@ -102,7 +102,7 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
 
     public XFastTrie.Node queryNode(long x) {
         while (true) {
-            StampedLock fgl = getRwLock(x);
+            StampedLock fgl = getLock(x);
             long stamp = fgl.tryOptimisticRead();
             XFastTrie.Node result = queryNodeNoLock(x);
             if (fgl.validate(stamp)) return result;
@@ -116,7 +116,7 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
     // smallest key >= x, or null if none
     public Long successor(long x) {
         while (true) {
-            StampedLock fgl = getRwLock(x);
+            StampedLock fgl = getLock(x);
             long stamp = fgl.tryOptimisticRead();
             Long result = successorNoLock(x);
             if (fgl.validate(stamp))
@@ -158,7 +158,7 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
     // largest key <= x, or null if none
     public Long predecessor(long x) {
         while (true) {
-            StampedLock fgl = getRwLock(x);
+            StampedLock fgl = getLock(x);
             long stamp = fgl.tryOptimisticRead();
             Long result = predecessorNoLock(x);
             if (fgl.validate(stamp))
@@ -180,14 +180,14 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
 
     public XFastTrie.Node predecessorNode(long x) {
         while (true) {
-            StampedLock fgl = getRwLock(x);
+            StampedLock fgl = getLock(x);
             long stamp = fgl.tryOptimisticRead();
             XFastTrie.Node result = predecessorNodeNoLock(x);
             if (fgl.validate(stamp)) return result;
         }
     }
 
-    Long predecessorNoLock(long x) {
+    public Long predecessorNoLock(long x) {
         XFastTrie.Node n = predecessorNodeNoLock(x);
         return n != null ? n.key : null;
     }
@@ -205,9 +205,9 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
             // 3-lock in key order: prev.key < x < next.key.
             // prevLock needed when nextLeaf==null (deleting tail) to protect tailLeaf update
             // against concurrent new-max insertions that lock L(tailLeaf).
-            StampedLock prevLock = (prevLeaf != null) ? getRwLock(prevLeaf.key) : null;
-            StampedLock xLock   = getRwLock(x);
-            StampedLock succLock = (nextLeaf != null) ? getRwLock(nextLeaf.key) : null;
+            StampedLock prevLock = (prevLeaf != null) ? getLock(prevLeaf.key) : null;
+            StampedLock xLock   = getLock(x);
+            StampedLock succLock = (nextLeaf != null) ? getLock(nextLeaf.key) : null;
 
             long prevStamp = (prevLock != null && prevLock != xLock) ? prevLock.writeLock() : -1;
             long xStamp    = xLock.writeLock();
@@ -300,9 +300,9 @@ public class ConcurrentXFastTrie implements XFastTrieInterface {
             XFastTrie.Node predNode = (succNode != null) ? succNode.prev : this.tailLeaf;
 
             // 3-lock in key order: pred.key < x < succ.key.
-            StampedLock predLock = (predNode != null) ? getRwLock(predNode.key) : null;
-            StampedLock xLock   = getRwLock(x);
-            StampedLock succLock = (succNode != null) ? getRwLock(succNode.key) : null;
+            StampedLock predLock = (predNode != null) ? getLock(predNode.key) : null;
+            StampedLock xLock   = getLock(x);
+            StampedLock succLock = (succNode != null) ? getLock(succNode.key) : null;
 
             long predStamp = (predLock != null && predLock != xLock) ? predLock.writeLock() : -1;
             long xStamp    = xLock.writeLock();

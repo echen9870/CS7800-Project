@@ -1,7 +1,7 @@
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
-public class TestingFramework {
+public class BenchmarkFramework {
 
     public static final byte INSERT = 0;
     public static final byte QUERY = 1;
@@ -11,11 +11,7 @@ public class TestingFramework {
 
     public int[] benchOpKeys;
 
-    public TestingFramework() {
-
-    }
-
-    public TestingFramework(long universe) {
+    public BenchmarkFramework(long universe) {
         this.universe = universe;
     }
 

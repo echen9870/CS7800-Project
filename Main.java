@@ -14,7 +14,7 @@ public class Main {
         long opCount = 1L << (bits + 2);
         long fillCount = 1L << (bits - 2);
 
-        TestingFramework framework = new TestingFramework(universe);
+        BenchmarkFramework framework = new BenchmarkFramework(universe);
 
         TreeSet<Long> bst = new TreeSet<>();
         RunResult bstResult = framework.benchmarkRandom("TreeSet", 1, opCount, fillCount,
@@ -36,18 +36,18 @@ public class Main {
     static void runPerOpBenchmarks(int bits) {
         int opCount = 1 << (bits + 2);
 
-        TestingFramework framework = new TestingFramework();
+        BenchmarkFramework framework = new BenchmarkFramework(bits);
         framework.generateBenchmarkOps(opCount);
 
         System.out.println("ConcurrentYFastTrie + XFastTrie backend (16 threads)");
-        ConcurrentYFastTrie yFast = new ConcurrentYFastTrie(31, new XFastTrie(31));
+        ConcurrentYFastTrie yFast = new ConcurrentYFastTrie(31, new XFastTrie(bits));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "insert", x -> yFast.insert(x)));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "query", x -> yFast.query(x)));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "successor", x -> yFast.successor(x)));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+XFast", 16, "delete", x -> yFast.delete(x)));
 
         System.out.println("ConcurrentYFastTrie + ConcurrentXFastTrie backend (16 threads)");
-        ConcurrentYFastTrie yFastCX = new ConcurrentYFastTrie(31, new ConcurrentXFastTrie(31));
+        ConcurrentYFastTrie yFastCX = new ConcurrentYFastTrie(31, new XFastTrie(bits));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "insert", x -> yFastCX.insert(x)));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "query", x -> yFastCX.query(x)));
         System.out.println(framework.benchmark("ConcurrentYFastTrie+ConcurrentXFast", 16, "successor", x -> yFastCX.successor(x)));

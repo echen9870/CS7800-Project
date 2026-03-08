@@ -1,0 +1,56 @@
+-- TODOs
+    - Scripting (High Priority)
+        - Create simple that compile and run the code for specific purposes
+            - Command for 
+                - checking XFastTrie
+                - checking YFastTrie
+                - benchmark YFastTrie
+                - compile all files to out 
+                - remove all files to out
+    - Bugs (High Priority)
+        - Concurrency bugs, hard to reproduce
+            - Need to check all structures for this
+            - Need to implement all checkers for this
+    
+    - Optimize (Low Priority)
+        - ConcurrentXFastTrie isn't as fast as the regular XFastTrie, need to fix this
+        
+- Directory Structure
+    - /xFast
+        - XFastTrieInterface.java
+        - XFastTrie.java
+            - This is the data structure that has a single lock on the entire tree, allows multiple optimistic reads but only one write
+        - ConcurrentXFastTrie.java
+            - This is the data structure that has a lock for each node on the lowest full level of the tree
+        - XFastChecker.java
+            - This is the test file that runs the invariant check for an XFast, takes an existing XFastTree and verifies that the tree is correct
+            - This test should be combined with a TestConcurrentCheck in order to verify that the entire tree is valid, otherwise the tree might be valid, but missing keys
+        - TestXFastQueryConcurrencyCorrectness.java
+            - This is used to test XFast against other valid data structures (Mainly the library TreeSet)
+            - Core functions are 
+                - TestConcurrentInsert
+                - TestConcurrentDelete
+                - assertOps - asserts that query, pred, succ all are the same results
+    - /yFast
+        - YFastTrieInterface.java
+        - ConcurrentYFastTrie.java
+            - ConcurrentYFast trie is the only concurrent data structure in this directory, interfaces with the XFastTrieInterface
+        - YFastTrie.java
+            - Basic implementation of the YFastTrie
+        - YFastChecker.java
+            - Specifically checks the structure of the buckets of the yFastTrie, we use the YFastChecker to determine the validity of the YFastTrie
+        - TestYFastQueryConcurrencyCorrectness.java
+            - This is used to test YFast against other valid data structures (Mainly the library TreeSet)
+            - Core functions are 
+                - TestConcurrentInsert
+                - TestConcurrentDelete
+                - assertOps - asserts that query, pred, succ all are the same results
+    - /benchmark 
+        - BenchmarkFramework
+            - Used to benchmark the speed of each operation
+        - RunResult.java
+            - Used by benchmark
+        - OpGenerator
+            - Used by benchmark
+    - Main - just run stuff
+
