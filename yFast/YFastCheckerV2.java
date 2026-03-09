@@ -2,17 +2,17 @@ package yFast;
 
 import java.util.*;
 import xFast.Node;
-import xFast.XFastTrie;
 import xFast.XFastChecker;
+import xFast.ConcurrentXFastTrie;
 
-public class YFastChecker {
+public class YFastCheckerV2 {
 
-    public static void check(ConcurrentYFastTrieV1 trie) {
-        XFastTrie xfast = trie.xfast;
+    public static void check(ConcurrentYFastTrieV2 trie) {
+        ConcurrentXFastTrie xfast = trie.xfast;
 
         XFastChecker.check(xfast);
+        checkLFL(xfast);
 
-        // --- walk leaf linked list and validate each bucket ---
         Node cur = xfast.headLeaf;
         Node prev = null;
         Set<Long> seen = new HashSet<>();
@@ -28,26 +28,22 @@ public class YFastChecker {
             assert data[0] == key
                     : "node key=" + key + " but data[0]=" + data[0];
 
-            // bucket sorted strictly increasing
             for (int i = 1; i < size; i++) {
                 assert data[i] > data[i - 1]
                         : "node key=" + key + " not increasing at " + i
                         + ": " + data[i - 1] + " -> " + data[i];
             }
 
-            // no cross-bucket duplicates
             for (int i = 0; i < size; i++) {
                 assert seen.add(data[i])
                         : "duplicate element " + data[i] + " in node key=" + key;
             }
 
-            // all elements >= bucket key
             for (int i = 0; i < size; i++) {
                 assert data[i] >= key
                         : "node key=" + key + " has element " + data[i] + " < key";
             }
 
-            // all elements < next bucket's key
             Node next = cur.next;
             if (next != null) {
                 assert data[size - 1] < next.key
@@ -55,12 +51,26 @@ public class YFastChecker {
                         + " >= next key=" + next.key;
             }
 
-            // linked list prev pointer
             assert cur.prev == prev
                     : "prev pointer broken at key=" + key;
 
             prev = cur;
             cur = next;
         }
+    }
+
+    private static void checkLFL(ConcurrentXFastTrie xfast) {
+        int lfl = xfast.lowestFullLevel;
+        int maxLFL = xfast.maxLFL;
+
+        assert lfl >= 0
+                : "lfl=" + lfl + " is negative";
+        assert lfl <= maxLFL
+                : "lfl=" + lfl + " but maxLFL=" + maxLFL;
+
+        int expectedLocks = 1 << lfl;
+        assert xfast.locks.length == expectedLocks
+                : "locks.length=" + xfast.locks.length + " but expected 2^lfl=" + expectedLocks
+                + " (lfl=" + lfl + ")";
     }
 }

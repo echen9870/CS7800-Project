@@ -1,9 +1,4 @@
 -- TODOs
-    - Bugs (High Priority)
-        - Concurrency bugs, hard to reproduce
-            - Need to check all structures for this
-            - Need to implement all checkers for this
-    
     - Optimize (Low Priority)
         - ConcurrentXFastTrie isn't as fast as the regular XFastTrie, need to fix this
         

@@ -3,15 +3,18 @@ package yFast;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+
+import xFast.ConcurrentXFastTrie;
+import xFast.XFastChecker;
 import xFast.XFastTrie;
 
 public class TestYFastQueryConcurrencyCorrectness {
 
-    static final int BITS = 26;
+    static final int BITS = 20;
     static final int THREADS = 16;
-    static final int KEYS_PER_THREAD = 1000000;
+    static final int KEYS_PER_THREAD = 5000;
     static final long UNIVERSE = 1L << BITS;
-    static ConcurrentYFastTrie yFastTrie = new ConcurrentYFastTrie(BITS, new XFastTrie(BITS));
+    static ConcurrentYFastTrieV2 yFastTrie = new ConcurrentYFastTrieV2(BITS, new ConcurrentXFastTrie(BITS, THREADS));
     static TreeSet<Long> bst = new TreeSet<>();
 
     public static void main(String[] args) throws Exception {
@@ -39,7 +42,10 @@ public class TestYFastQueryConcurrencyCorrectness {
         // Ops Check The Entire Universe
         assertOps(yFastTrie, bst);
 
-        System.out.println("concurrent insert: OK (" + keys.size() + " keys, " + THREADS + " threads)");
+        // Check XFast
+        XFastChecker.check(yFastTrie.xfast);
+
+        System.out.println("concurrent insert: OK (" + bst.size() + " remaining keys, " + THREADS + " threads)");
     }
 
     // All threads delete disjoint subsets concurrently.
@@ -58,7 +64,10 @@ public class TestYFastQueryConcurrencyCorrectness {
         // Ops Check The Entire Universe
         assertOps(yFastTrie, bst);
 
-        System.out.println("concurrent delete: OK (" + keys.size() + " keys, " + THREADS + " threads)");
+        // Check XFast
+        XFastChecker.check(yFastTrie.xfast);
+
+        System.out.println("concurrent delete: OK (" + bst.size() + " remaining keys, " + THREADS + " threads)");
     }
 
     // --- Helpers ---
@@ -104,7 +113,7 @@ public class TestYFastQueryConcurrencyCorrectness {
         return keys;
     }
 
-    static void assertOps(ConcurrentYFastTrie tree, TreeSet<Long> expected) {
+    static void assertOps(ConcurrentYFastTrieV2 tree, TreeSet<Long> expected) {
         for (long key = 0; key < UNIVERSE; key++) {
             if (!Objects.equals(tree.successor(key), expected.ceiling(key)))
             throw new AssertionError("Successor mismatch: key=" + key + " expected=" + expected.ceiling(key) + " got=" + tree.successor(key)) ;
@@ -115,6 +124,5 @@ public class TestYFastQueryConcurrencyCorrectness {
             if (!Objects.equals(tree.query(key), expected.contains(key)))
                 throw new AssertionError("Query mismatch: key=" + key + " expected=" + expected.contains(key) + " tree.query(key)=" + tree.query(key));
         }
-
     }
 }

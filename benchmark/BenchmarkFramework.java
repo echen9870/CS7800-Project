@@ -1,7 +1,13 @@
 package benchmark;
 
 import java.util.Random;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+
+import xFast.ConcurrentXFastTrie;
+import xFast.XFastTrie;
+import yFast.ConcurrentYFastTrieV1;
+import yFast.ConcurrentYFastTrieV2;
 
 public class BenchmarkFramework {
 
@@ -68,9 +74,10 @@ public class BenchmarkFramework {
     // Run this before benchmark(), generates positive ints
     public void generateBenchmarkOps(int n) {
         Random rng = new Random(123456789);
+        int mask = (int) (universe - 1);
         this.benchOpKeys = new int[n];
         for (int i = 0; i < n; i++) {
-            this.benchOpKeys[i] = rng.nextInt() & Integer.MAX_VALUE;
+            this.benchOpKeys[i] = rng.nextInt() & mask;
         }
     }
 
@@ -133,5 +140,57 @@ public class BenchmarkFramework {
     @FunctionalInterface
     public interface LongOp {
         void apply(long x);
+    }
+
+    public static void main(String[] args) {
+        int bits = Integer.parseInt(args[0]);
+        runPerOpBenchmarks(bits);
+    }
+
+    static void runRandomBenchmark(int bits) {
+        long opCount = 1L << (bits + 2);
+        long fillCount = 1L << (bits - 2);
+
+        BenchmarkFramework framework = new BenchmarkFramework(1L << bits);
+
+        TreeSet<Long> bst = new TreeSet<>();
+        RunResult bstResult = framework.benchmarkRandom("TreeSet", 1, opCount, fillCount,
+                x -> bst.add(x),
+                x -> bst.contains(x),
+                x -> bst.ceiling(x));
+        System.out.println(bstResult);
+
+        ConcurrentYFastTrieV1 concurrentYFast = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
+        RunResult yFastResult = framework.benchmarkRandom("ConcurrentYFastTrieV1", 16, opCount, fillCount,
+                x -> concurrentYFast.insert(x),
+                x -> concurrentYFast.query(x),
+                x -> concurrentYFast.successor(x));
+        System.out.println(yFastResult);
+    }
+
+    static void runPerOpBenchmarks(int bits) {
+        int opCount = 1 << bits;
+        long universe = 1L << 31;
+
+        BenchmarkFramework framework = new BenchmarkFramework(universe);
+        framework.generateBenchmarkOps(opCount);
+
+        System.out.println("ConcurrentYFastTrieV1 + XFastTrie backend (16 threads), bits=" + 31);
+        ConcurrentYFastTrieV1 yFastV1 = new ConcurrentYFastTrieV1(31, new XFastTrie(31));
+        System.out.println(framework.benchmark("V1+XFast", 16, "insert", x -> yFastV1.insert(x)));
+        System.out.println(framework.benchmark("V1+XFast", 16, "query", x -> yFastV1.query(x)));
+        System.out.println(framework.benchmark("V1+XFast", 16, "successor", x -> yFastV1.successor(x)));
+        System.out.println(framework.benchmark("V1+XFast", 16, "delete", x -> yFastV1.delete(x)));
+
+        System.gc();
+        System.out.println("\nConcurrentYFastTrieV2 + ConcurrentXFastTrie backend (16 threads), bits=" + 31);
+        ConcurrentXFastTrie concurrentXFastTrie = new ConcurrentXFastTrie(31, 16);
+        ConcurrentYFastTrieV2 yFastV2 = new ConcurrentYFastTrieV2(31, concurrentXFastTrie);
+        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "insert", x -> yFastV2.insert(x)));
+        System.out.println("LFL after insert: " + concurrentXFastTrie.lowestFullLevel);
+        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "query", x -> yFastV2.query(x)));
+        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "successor", x -> yFastV2.successor(x)));
+        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "delete", x -> yFastV2.delete(x)));
+        System.out.println("LFL after delete: " + concurrentXFastTrie.lowestFullLevel);
     }
 }

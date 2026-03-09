@@ -1,6 +1,7 @@
 package yFast;
 
 import java.util.*;
+import xFast.Node;
 import xFast.XFastTrie;
 
 public class YFastTrie {
@@ -14,76 +15,59 @@ public class YFastTrie {
     }
 
     public boolean query(long x) {
-        // get rep, return null if rep is null
         Long rep = xfast.predecessor(x);
         if (rep == null)
             return false;
-        XFastTrie.Node node = xfast.queryNode(rep);
+        Node node = xfast.queryNode(rep);
+        PrimitiveArray bucket = node.bucket;
 
-        long[] nums = node.nums;
-        int numsSize = node.numsSize;
-
-        // binary search inside bucket
-        int pos = Arrays.binarySearch(nums, 0, numsSize, x);
+        int pos = Arrays.binarySearch(bucket.data, 0, bucket.size, x);
 
         return (pos >= 0);
     }
 
     // smallest key >= x, or null if none
     public Long successor(long x) {
-        // get rep
         Long rep = xfast.predecessor(x);
-        XFastTrie.Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
+        Node node = (rep == null) ? xfast.headLeaf : xfast.queryNode(rep);
 
-        // get node
-        long[] nums = node.nums;
-        int numsSize = node.numsSize;
-
-        long last = nums[numsSize - 1];
+        PrimitiveArray bucket = node.bucket;
+        long last = bucket.data[bucket.size - 1];
 
         if (x <= last) {
-            int idx = Arrays.binarySearch(nums, 0, numsSize, x);
+            int idx = Arrays.binarySearch(bucket.data, 0, bucket.size, x);
             if (idx >= 0)
-                return nums[idx];
+                return bucket.data[idx];
             idx = -idx - 1;
-            return (idx < numsSize) ? nums[idx] : null;
+            return (idx < bucket.size) ? bucket.data[idx] : null;
         }
 
         // If our last element is less than x, we have to go to next node (check null)
-        return (node.next == null) ? null : node.next.nums[0];
+        return (node.next == null) ? null : node.next.bucket.data[0];
     }
 
     public void insert(long x) {
         // max bucket size
-        int maxSize = 16 * bits;
+        int maxSize = 32 * bits;
 
         // find bucket rep
         Long rep = xfast.predecessor(x);
 
         // x is smaller than smallest rep
         if (rep == null) {
-            long[] nums = new long[maxSize];
-            nums[0] = x;
-            xfast.insert(x, nums, 1);
+            PrimitiveArray bucket = new PrimitiveArray(new long[maxSize], 1);
+            bucket.data[0] = x;
+            xfast.insert(x, bucket);
             return;
         }
 
         // Get representative
-        XFastTrie.Node node = xfast.queryNode(rep);
-        long[] nums = node.nums;
-        int numsSize = node.numsSize;
+        Node node = xfast.queryNode(rep);
 
-        // sorted insert into tree
-        int pos = Arrays.binarySearch(nums, 0, numsSize, x);
-        if (pos >= 0)
-            return;
-        pos = -pos - 1;
-        System.arraycopy(nums, pos, nums, pos + 1, numsSize - pos);
-        nums[pos] = x;
-        node.numsSize = numsSize + 1;
+        if (node.bucket.sortedInsert(x) < 0) return; // duplicate
 
         // split if too big
-        if (maxSize == node.numsSize) {
+        if (node.bucket.size == maxSize) {
             splitList(rep);
         }
     }
@@ -97,16 +81,15 @@ public class YFastTrie {
             return null;
 
         // Find predecessor bucket
-        XFastTrie.Node node = xfast.queryNode(rep);
-        long[] nums = node.nums;
-        int numsSize = node.numsSize;
+        Node node = xfast.queryNode(rep);
+        PrimitiveArray bucket = node.bucket;
 
         // Return position
-        int pos = Arrays.binarySearch(nums, 0, numsSize, x);
+        int pos = Arrays.binarySearch(bucket.data, 0, bucket.size, x);
         if (pos >= 0)
-            return nums[pos];
+            return bucket.data[pos];
         pos = -pos - 1;
-        return (pos > 0) ? nums[pos - 1] : null;
+        return (pos > 0) ? bucket.data[pos - 1] : null;
     }
 
     public boolean delete(long x) {
@@ -114,48 +97,32 @@ public class YFastTrie {
         if (rep == null)
             return false;
 
-        XFastTrie.Node node = xfast.queryNode(rep);
-        long[] nums = node.nums;
-        int numsSize = node.numsSize;
+        Node node = xfast.queryNode(rep);
+        PrimitiveArray bucket = node.bucket;
 
-        int pos = Arrays.binarySearch(nums, 0, numsSize, x);
+        int pos = Arrays.binarySearch(bucket.data, 0, bucket.size, x);
 
         // x not in tree
         if (pos < 0)
             return false;
 
-        // Remove x from nums array
-        System.arraycopy(nums, pos + 1, nums, pos, numsSize - pos - 1);
-        node.numsSize = numsSize - 1;
+        // Remove x from bucket
+        System.arraycopy(bucket.data, pos + 1, bucket.data, pos, bucket.size - pos - 1);
+        bucket.size--;
 
         // x was the bucket representative — update XFast
         if (x == rep) {
             xfast.delete(x);
-            if (node.numsSize > 0) {
-                long newRep = nums[0];
-                xfast.insert(newRep, nums, node.numsSize);
+            if (bucket.size > 0) {
+                xfast.insert(bucket.data[0], bucket);
             }
         }
         return true;
     }
 
     public void splitList(long rep) {
-        // query node and nums
-        XFastTrie.Node node = xfast.queryNode(rep);
-        long[] nums = node.nums;
-        int numsSize = node.numsSize;
-
-        // split in half and create new list
-        int half = numsSize / 2;
-        int newNumsSize = numsSize - half;
-        long[] newNums = new long[16 * bits];
-        System.arraycopy(nums, half, newNums, 0, newNumsSize);
-        node.numsSize = half;
-
-        // We need to clear the right half of the old array
-        Arrays.fill(nums, half, numsSize, 0L);
-
-        // register new bucket + rep
-        xfast.insert(newNums[0], newNums, newNumsSize);
+        Node node = xfast.queryNode(rep);
+        PrimitiveArray newBucket = node.bucket.split(16 * bits);
+        xfast.insert(newBucket.data[0], newBucket);
     }
 }

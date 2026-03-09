@@ -3,48 +3,12 @@ package xFast;
 import java.util.HashMap;
 import java.util.concurrent.locks.StampedLock;
 
-public class XFastTrie implements XFastTrieInterface {
-    // Internal trie nodes only need min/max leaf pointers
-    public static class InternalNode {
-        public volatile Node minLeaf;
-        public volatile Node maxLeaf;
+import yFast.PrimitiveArray;
 
-        public InternalNode(Node minLeaf, Node maxLeaf) {
-            this.minLeaf = minLeaf;
-            this.maxLeaf = maxLeaf;
-        }
-    }
-
-    // Leaf nodes carry bucket data and linked-list pointers
-    public static class Node extends InternalNode {
-
-        // Doubly linked list for the leaf nodes
-        public volatile Node prev;
-        public volatile Node next;
-
-        // The sub universe for the leaf node X-Fast trie in a Y-Fast Trie
-        public long[] nums;
-        public volatile int numsSize;
-
-        // Val
-        public long key;
-
-        // Concurrency control
-        public StampedLock bucketRw;
-
-        public Node(long key, long[] nums, int numsSize) {
-            super(null, null);
-            this.key = key;
-            this.minLeaf = this;
-            this.maxLeaf = this;
-            this.nums = nums;
-            this.numsSize = numsSize;
-            this.bucketRw = new StampedLock();
-        }
-    }
+public class XFastTrie {
 
     // universe = 2**bits
-    public int bits;
+    public final int bits;
     public HashMap<Long, InternalNode>[] level;
 
     // start/end of leaf linked list
@@ -59,55 +23,31 @@ public class XFastTrie implements XFastTrieInterface {
     @SuppressWarnings("unchecked")
     public XFastTrie(int bits) {
         this.bits = bits;
-
         this.level = new HashMap[bits + 1];
-        for (int i = 0; i <= bits; i++) {
-            this.level[i] = new HashMap<>();
-        }
-
+        for (int i = 0; i <= bits; i++) this.level[i] = new HashMap<>();
         this.level[0].put(0L, new InternalNode(null, null));
-
         this.headLeaf = null;
         this.tailLeaf = null;
-
         this.size = 0;
     }
 
-    public StampedLock getLock(long x) { return rw; }
-
-    public Node getHeadLeaf() {
-        return this.headLeaf;
-    }
-
     // Caller must hold writeLock
-    private void linkBetweenNoLock(Node leaf, Node predecessorNode, Node successorNode) {
-        leaf.prev = predecessorNode;
-        leaf.next = successorNode;
-
-        if (predecessorNode != null) {
-            predecessorNode.next = leaf;
-        } else {
-            this.headLeaf = leaf;
-        }
-
-        if (successorNode != null) {
-            successorNode.prev = leaf;
-        } else {
-            this.tailLeaf = leaf;
-        }
+    private void linkBetweenNoLock(Node leaf, Node predNode, Node succNode) {
+        leaf.prev = predNode;
+        leaf.next = succNode;
+        if (predNode != null) predNode.next = leaf;
+        else this.headLeaf = leaf;
+        if (succNode != null) succNode.prev = leaf;
+        else this.tailLeaf = leaf;
     }
 
-        int longestPrefixLenNoLock(long x) {
+    int longestPrefixLenNoLock(long x) {
         int low = 1; // level 0 (root) always exists, skip it
         int high = this.bits - 1;
-
         while (low < high) {
             int mid = (low + high + 1) / 2;
-            if (this.level[mid].containsKey(x >>> (bits - mid))) {
-                low = mid;
-            } else {
-                high = mid - 1;
-            }
+            if (this.level[mid].containsKey(x >>> (bits - mid))) low = mid;
+            else high = mid - 1;
         }
         return low;
     }
@@ -217,39 +157,29 @@ public class XFastTrie implements XFastTrieInterface {
 
     public boolean delete(long x) {
         long stamp = rw.writeLock();
-        try {
-            return deleteNoLock(x);
-        } finally {
-            rw.unlockWrite(stamp);
-        }
+        try { return deleteNoLock(x); }
+        finally { rw.unlockWrite(stamp); }
     }
 
     // Caller must hold writeLock
     public boolean deleteNoLock(long x) {
         Node leaf = (Node) this.level[this.bits].remove(x);
         if (leaf == null) return false;
-
         this.size--;
 
         Node prevLeaf = leaf.prev;
         Node nextLeaf = leaf.next;
 
         // Unlink from doubly linked list
-        if (prevLeaf != null)
-            prevLeaf.next = nextLeaf;
-        else
-            this.headLeaf = nextLeaf;
-
-        if (nextLeaf != null)
-            nextLeaf.prev = prevLeaf;
-        else
-            this.tailLeaf = prevLeaf;
+        if (prevLeaf != null) prevLeaf.next = nextLeaf;
+        else this.headLeaf = nextLeaf;
+        if (nextLeaf != null) nextLeaf.prev = prevLeaf;
+        else this.tailLeaf = prevLeaf;
 
         // Walk up the trie: remove or update ancestor nodes.
         // Break early once a node's min/max are unchanged — ancestors are unaffected.
         for (int depth = this.bits - 1; depth >= 0; depth--) {
             long prefix = x >>> (bits - depth);
-
             InternalNode leftChild  = this.level[depth + 1].get(prefix << 1);
             InternalNode rightChild = this.level[depth + 1].get((prefix << 1) | 1);
 
@@ -263,67 +193,64 @@ public class XFastTrie implements XFastTrieInterface {
                     this.level[depth].remove(prefix);
                 }
             } else {
-                // only look up the parent when we actually need to update it
                 InternalNode node = this.level[depth].get(prefix);
                 Node newMin = (leftChild != null) ? leftChild.minLeaf : rightChild.minLeaf;
                 Node newMax = (rightChild != null) ? rightChild.maxLeaf : leftChild.maxLeaf;
-                // Early break
-                if (node.minLeaf == newMin && node.maxLeaf == newMax)
-                    break;
+                if (node.minLeaf == newMin && node.maxLeaf == newMax) break;
                 node.minLeaf = newMin;
                 node.maxLeaf = newMax;
             }
         }
-
         return true;
     }
 
-    public boolean insert(long x) {
-        return insert(x, null, 0);
-    }
+    public boolean insert(long x) { return insert(x, null); }
 
-    public boolean insert(long x, long[] list, int listSize) {
+    public boolean insert(long x, PrimitiveArray bucket) {
         long stamp = rw.writeLock();
-        try {
-            return insertNoLock(x, list, listSize);
-        } finally {
-            rw.unlockWrite(stamp);
-        }
+        try { return insertNoLock(x, bucket); }
+        finally { rw.unlockWrite(stamp); }
     }
 
     // callers already holding rw writeLock should use this directly
-    public boolean insertNoLock(long x, long[] list, int listSize) {
+    public boolean insertNoLock(long x, PrimitiveArray bucket) {
         if (queryNoLock(x)) return false;
+        Node leaf = new Node(x, bucket);
+        Node succNode = successorNodeNoLock(x);
+        Node predNode = (succNode != null) ? succNode.prev : this.tailLeaf;
+        insertLeafNoLock(leaf, predNode, succNode);
+        return true;
+    }
 
-        Node leaf = new Node(x, list, listSize);
+    // Variant that skips the redundant successor search — caller provides pred/succ directly
+    public boolean insertNoLockBetween(long x, PrimitiveArray bucket, Node predNode, Node succNode) {
+        if (queryNoLock(x)) return false;
+        insertLeafNoLock(new Node(x, bucket), predNode, succNode);
+        return true;
+    }
 
-        Node successorNode = successorNodeNoLock(x);
-        Node predecessorNode = (successorNode != null) ? successorNode.prev : this.tailLeaf;
+    // Re-insert an existing leaf node under its current key.
+    // Caller must have already called deleteNoLock for the old key and updated node.key.
+    public void reinsertNodeNoLock(Node leaf, Node predNode, Node succNode) {
+        insertLeafNoLock(leaf, predNode, succNode);
+    }
 
-        linkBetweenNoLock(leaf, predecessorNode, successorNode);
-        this.level[this.bits].put(x, leaf);
-
-        // Walk bottom-up (bits-1 → 0): create or update ancestor nodes.
-        // Breaking early if node exists and min max doesn't change
+    // Shared leaf insertion: link, add to levels, increment size
+    private void insertLeafNoLock(Node leaf, Node predNode, Node succNode) {
+        linkBetweenNoLock(leaf, predNode, succNode);
+        this.level[this.bits].put(leaf.key, leaf);
         for (int depth = this.bits - 1; depth >= 0; depth--) {
-            long prefix = x >>> (bits - depth);
+            long prefix = leaf.key >>> (bits - depth);
             InternalNode node = this.level[depth].get(prefix);
             if (node == null) {
                 this.level[depth].put(prefix, new InternalNode(leaf, leaf));
             } else {
-                boolean canBreak = false;
-                if (node.minLeaf == null || leaf.key < node.minLeaf.key) {
-                    node.minLeaf = leaf;
-                    canBreak = true;
-                }
-                if (node.maxLeaf == null || leaf.key > node.maxLeaf.key) {
-                    node.maxLeaf = leaf;
-                    canBreak = true;
-                }
-                if (!canBreak) break;
+                boolean changed = false;
+                if (node.minLeaf == null || leaf.key < node.minLeaf.key) { node.minLeaf = leaf; changed = true; }
+                if (node.maxLeaf == null || leaf.key > node.maxLeaf.key) { node.maxLeaf = leaf; changed = true; }
+                if (!changed) break;
             }
         }
-        this.size += 1;
-        return true;
+        this.size++;
     }
 }

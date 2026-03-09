@@ -31,7 +31,7 @@ case "$1" in
         mkdir -p out
         javac -d out xFast/*.java yFast/*.java benchmark/*.java Main.java
         echo "Running benchmark with bits=$BITS..."
-        java -cp out Main "$BITS"
+        java -cp out -Xms24g Main "$BITS"
         ;;
     *)
         echo "Usage: ./run.sh {compile|clean|check-xfast|check-yfast|benchmark [bits]}"
