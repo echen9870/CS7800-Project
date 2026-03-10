@@ -11,7 +11,7 @@ public class PrimitiveArray {
         this.size = size;
     }
 
-    // Insert x in sorted order. Returns insertion index (>= 0), or -1 if x already exists.
+    // Insert x in sorted order. Returns insertion index (>= 0), or -1 if x already exists
     public int sortedInsert(long x) {
         int pos = Arrays.binarySearch(data, 0, size, x);
         if (pos >= 0) return -1;
@@ -32,7 +32,7 @@ public class PrimitiveArray {
         return true;
     }
 
-    // Split keeps first half in this array, returns new PrimitiveArray with second half.
+    // Split keeps first half in this array, returns new PrimitiveArray with second half
     public PrimitiveArray split(int capacity) {
         int half = size / 2;
         int newSize = size - half;

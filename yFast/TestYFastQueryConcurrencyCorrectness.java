@@ -14,7 +14,7 @@ public class TestYFastQueryConcurrencyCorrectness {
     static final int THREADS = 16;
     static final int KEYS_PER_THREAD = 5000;
     static final long UNIVERSE = 1L << BITS;
-    static ConcurrentYFastTrieV2 yFastTrie = new ConcurrentYFastTrieV2(BITS, new ConcurrentXFastTrie(BITS, THREADS));
+    static ConcurrentYFastTrieV2 yFastTrie = new ConcurrentYFastTrieV2(BITS, new ConcurrentXFastTrie(BITS, 16));
     static TreeSet<Long> bst = new TreeSet<>();
 
     public static void main(String[] args) throws Exception {
@@ -58,7 +58,7 @@ public class TestYFastQueryConcurrencyCorrectness {
             }
         });
 
-        // Insertions into BST
+        // Deletions into BST
         bst.removeAll(keys);
 
         // Ops Check The Entire Universe

@@ -102,43 +102,55 @@ public class ConcurrentYFastTrieV1 {
 
             // x is smaller than every existing key — create a new head bucket
             if (node == null) {
-                long lock = xfast.rw.writeLock();
-                try {
-                    Node headNode = xfast.headLeaf;
-                    if (headNode != null && headNode.key <= x) continue;
+                long xLock = xfast.rw.writeLock();
+                Node headNode = xfast.headLeaf;
+                long lock = (headNode != null) ? headNode.bucketRw.writeLock() : 0;
 
-                    PrimitiveArray bucket = new PrimitiveArray(new long[maxBucketSize], 1);
-                    bucket.data[0] = x;
-                    xfast.insertNoLockBetween(x, bucket, null, headNode);
+                try {
+                    if (headNode != null && headNode.key <= x) continue;
+                    if (headNode == null) {
+                        PrimitiveArray bucket = new PrimitiveArray(new long[maxBucketSize], 1);
+                        bucket.data[0] = x;
+                        xfast.insertNoLockBetween(x, bucket, null, null);
+                    } else {
+                        PrimitiveArray bucket = headNode.bucket;
+                        bucket.sortedInsert(x);
+                        long oldKey = headNode.key;
+                        xfast.deleteNoLock(oldKey);
+                        headNode.key = x;
+                        xfast.reinsertNodeNoLock(headNode, null, headNode.next);
+                        if (bucket.size == maxBucketSize) splitListLocked(headNode);
+                    }
                     return;
                 } finally {
-                    xfast.rw.unlockWrite(lock);
+                    if (lock != 0) headNode.bucketRw.unlockWrite(lock);
+                    xfast.rw.unlockWrite(xLock);
+                }
+            } else {
+                long lock = node.bucketRw.writeLock();
+                PrimitiveArray bucket = node.bucket;
+                long xLock = (bucket.size + 1 == maxBucketSize) ? xfast.rw.writeLock() : 0;
+
+                try {
+                    // Stale data
+                    if (xLock != 0 && bucket.size + 1 != maxBucketSize) continue;
+                    // Validate bucket is still alive and x belongs here
+                    if (node == null || bucket.size == 0 || bucket.data[0] != node.key) continue;
+                    Node nextNode = node.next;
+                    if (nextNode != null && x >= nextNode.key) continue;
+                    if (x < node.key) continue;
+                    // Duplicate
+                    if (bucket.sortedInsert(x) < 0) return; 
+                    // Need to split
+                    if (xLock != 0) splitListLocked(node);
+                    return;
+                } finally {
+                    if (xLock != 0) xfast.rw.unlockWrite(xLock);
+                    node.bucketRw.unlockWrite(lock);
                 }
             }
 
-            long lock = node.bucketRw.writeLock();
-            PrimitiveArray bucket = node.bucket;
-            long xLock = (bucket.size + 1 == maxBucketSize) ? xfast.rw.writeLock() : 0;
-
-            try {
-                // Stale data
-                if (xLock != 0 && bucket.size + 1 != maxBucketSize) continue;
-
-                // Validate bucket is still alive and x belongs here
-                if (bucket.size == 0 || bucket.data[0] != node.key) continue;
-                Node nextNode = node.next;
-                if (nextNode != null && x >= nextNode.key) continue;
-                if (x < node.key) continue;
-
-                // Duplicate
-                if (bucket.sortedInsert(x) < 0) return; 
-                // Need to split
-                if (xLock != 0) splitListLocked(node);
-                return;
-            } finally {
-                if (xLock != 0) xfast.rw.unlockWrite(xLock);
-                node.bucketRw.unlockWrite(lock);
-            }
+            
         }
     }
 

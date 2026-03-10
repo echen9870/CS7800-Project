@@ -102,47 +102,72 @@ public class ConcurrentYFastTrieV2 {
         boolean didSplit = false;
         while (true) {
             Node node = locateBucket(x);
+            StampedLock xLock = null;    
+            long xStamp = -1;
+            StampedLock succLock = null;  
+            long succStamp = -1;
+            long levelStamp = -1;
+            long bucketStamp = -1;
 
             // Head insert: x is smaller than every existing key
+            // Since x < headNode.key, getLock(x) covers headNode's partition too
             if (node == null) {
-                long levelStamp = xfast.levelLock.readLock();
+                Node headNode = xfast.headLeaf;
                 try {
-                    Node headNode = xfast.headLeaf;
+                    // Get bucket stamp
+                    bucketStamp = (headNode != null) ? headNode.bucketRw.writeLock() : -1;
+
+                    // Stale
                     if (headNode != null && headNode.key <= x) continue;
 
-                    StampedLock xLock = xfast.getLock(x);
-                    long xStamp = xLock.writeLock();
-                    StampedLock headLock = null;
-                    long headStamp = -1;
+                    // Get xLock/headLock
+                    xLock = xfast.getLock(x);
+                    xStamp = xLock.writeLock();
+
+                    // Get succLock is successor exists
                     if (headNode != null) {
-                        headLock = xfast.getLock(headNode.key);
-                        if (headLock != xLock) headStamp = headLock.writeLock();
+                        Node succNode = headNode.next;
+                        if (succNode != null) {
+                            succLock = xfast.getLock(succNode.key);
+                            if (succLock != xLock) succStamp = succLock.writeLock();
+                        }
                     }
-                    try {
-                        if (xfast.headLeaf != headNode) continue;
+
+                    // Get level lock
+                    levelStamp = xfast.levelLock.readLock();
+
+                    // Stale
+                    if (xfast.headLeaf != headNode) continue;
+                    // If first insert
+                    if (headNode == null) {
                         PrimitiveArray bucket = new PrimitiveArray(new long[maxBucketSize], 1);
                         bucket.data[0] = x;
-                        xfast.insertNoLockBetween(x, bucket, null, headNode);
-                    } finally {
-                        if (headStamp != -1) headLock.unlockWrite(headStamp);
-                        xLock.unlockWrite(xStamp);
+                        xfast.insertNoLockBetween(x, bucket, null, null);
+                    } else {
+                        PrimitiveArray bucket = headNode.bucket;
+                        bucket.sortedInsert(x);
+                        long oldKey = headNode.key;
+                        xfast.deleteNoLock(oldKey);
+                        headNode.key = x;
+                        xfast.reinsertNodeNoLock(headNode, null, headNode.next);
+                        if (bucket.size == maxBucketSize) {
+                            PrimitiveArray newBucket = bucket.split(maxBucketSize);
+                            xfast.insertNoLockBetween(newBucket.data[0], newBucket, headNode, headNode.next);
+                        }
                     }
+                    return;
                 } finally {
-                    xfast.levelLock.unlockRead(levelStamp);
+                    if (levelStamp != -1) xfast.levelLock.unlockRead(levelStamp);
+                    if (succStamp != -1) succLock.unlockWrite(succStamp);
+                    if (xStamp != -1) xLock.unlockWrite(xStamp);
+                    if (bucketStamp != -1) headNode.bucketRw.unlockWrite(bucketStamp);
                 }
-                afterInsert();
-                return;
             }
 
             // Normal insert into existing bucket
-            long bucketStamp = node.bucketRw.writeLock();
+            bucketStamp = node.bucketRw.writeLock();
             PrimitiveArray bucket = node.bucket;
             boolean willSplit = (bucket.size + 1 == maxBucketSize);
-
-            StampedLock xLock = null;    long xStamp = -1;
-            StampedLock succLock = null;  long succStamp = -1;
-            long levelStamp = -1;
-
             if (willSplit) {
                 xLock = xfast.getLock(x);
                 xStamp = xLock.writeLock();
@@ -160,14 +185,15 @@ public class ConcurrentYFastTrieV2 {
                 if (nextNode != null && x >= nextNode.key) continue;
                 if (x < node.key) continue;
 
-                if (bucket.sortedInsert(x) < 0) break; // duplicate
+                // duplicate
+                if (bucket.sortedInsert(x) < 0) break; 
 
                 if (willSplit) {
                     PrimitiveArray newBucket = bucket.split(maxBucketSize);
                     xfast.insertNoLockBetween(newBucket.data[0], newBucket, node, node.next);
                     didSplit = true;
                 }
-                break; // success
+                break;
             } finally {
                 if (levelStamp != -1) xfast.levelLock.unlockRead(levelStamp);
                 if (succStamp != -1) succLock.unlockWrite(succStamp);

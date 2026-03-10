@@ -124,6 +124,7 @@ public class ConcurrentXFastTrie {
         Node head = this.headLeaf;
         if (head == null) return null;
         Node tail = this.tailLeaf;
+        if (tail == null) return null;
         if (x > tail.key) return null;
         if (x <= head.key) return head;
 
@@ -167,6 +168,7 @@ public class ConcurrentXFastTrie {
         Node head = this.headLeaf;
         if (head == null || x < head.key) return null;
         Node tail = this.tailLeaf;
+        if (tail == null) return null;
         if (x >= tail.key) return tail;
         Node succ = successorNodeNoLock(x);
         return succ != null ? succ.prev : null;
