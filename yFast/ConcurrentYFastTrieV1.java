@@ -13,9 +13,13 @@ public class ConcurrentYFastTrieV1 {
     private final int maxBucketSize;
 
     public ConcurrentYFastTrieV1(int b, XFastTrie xfast) {
+        this(b, xfast, 32 * b);
+    }
+
+    public ConcurrentYFastTrieV1(int b, XFastTrie xfast, int bucketSize) {
         this.bits = b;
         this.xfast = xfast;
-        this.maxBucketSize = 32 * b;
+        this.maxBucketSize = bucketSize;
     }
 
     // Which bucket x belongs in if it exists

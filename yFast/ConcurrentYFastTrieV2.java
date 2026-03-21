@@ -16,9 +16,13 @@ public class ConcurrentYFastTrieV2 {
     private final int maxBucketSize;
 
     public ConcurrentYFastTrieV2(int b, ConcurrentXFastTrie xfast) {
+        this(b, xfast, 32 * b);
+    }
+
+    public ConcurrentYFastTrieV2(int b, ConcurrentXFastTrie xfast, int bucketSize) {
         this.bits = b;
         this.xfast = xfast;
-        this.maxBucketSize = 32 * b;
+        this.maxBucketSize = bucketSize;
     }
 
     private Node locateBucket(long x) {

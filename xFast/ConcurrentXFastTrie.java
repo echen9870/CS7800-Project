@@ -34,12 +34,18 @@ public class ConcurrentXFastTrie {
 
     @SuppressWarnings("unchecked")
     public ConcurrentXFastTrie(int bits, int maxThreads) {
+        this(bits, maxThreads, -1);
+    }
+
+    // explicitMaxLFL < 0 means derive from maxThreads; otherwise use the given value
+    public ConcurrentXFastTrie(int bits, int maxThreads, int explicitMaxLFL) {
         this.bits = bits;
 
         // maxLFL: cap at 2^maxLFL >= 3 * maxThreads partition locks
-        int maxLevel = 0;
-        while ((1 << maxLevel) < 3 * maxThreads) maxLevel++;
-        this.maxLFL = Math.min(maxLevel, bits);
+        int derivedMax = explicitMaxLFL >= 0
+                ? explicitMaxLFL
+                : 32 - Integer.numberOfLeadingZeros(3 * maxThreads - 1);
+        this.maxLFL = Math.min(derivedMax, bits - 1);
 
         this.level = new ConcurrentHashMap[bits + 1];
         for (int i = 0; i <= bits; i++) this.level[i] = new ConcurrentHashMap<>();

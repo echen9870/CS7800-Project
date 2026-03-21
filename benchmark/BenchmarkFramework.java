@@ -17,8 +17,6 @@ public class BenchmarkFramework {
 
     public long universe;
 
-    public int[] benchOpKeys;
-
     public BenchmarkFramework(long universe) {
         this.universe = universe;
     }
@@ -43,7 +41,6 @@ public class BenchmarkFramework {
                 }
             });
             fillThreads[thread].start();
-
         }
         for (Thread thread : fillThreads) {
             try {
@@ -71,21 +68,13 @@ public class BenchmarkFramework {
         return new RunResult(name + "_" + threadCount + "thread", n, this.universe, elapsed / 1e9);
     }
 
-    // Run this before benchmark(), generates positive ints
-    public void generateBenchmarkOps(int n) {
-        Random rng = new Random(123456789);
-        int mask = (int) (universe - 1);
-        this.benchOpKeys = new int[n];
-        for (int i = 0; i < n; i++) {
-            this.benchOpKeys[i] = rng.nextInt() & mask;
-        }
-    }
-
-    public RunResult benchmark(String name, int threadCount, String opType, LongOp op) {
-        int n = benchOpKeys.length;
-        long elapsed = timeOps(threadCount, (long) n, (t, start, end) -> {
+    // Generates keys on-the-fly per thread — same deterministic keys every run
+    public RunResult benchmark(String name, int threadCount, long n, String opType, LongOp op) {
+        long mask = universe - 1;
+        long elapsed = timeOps(threadCount, n, (t, start, end) -> {
+            Random rng = new Random(123456789L + t);
             for (long i = start; i < end; i++) {
-                op.apply(benchOpKeys[(int) i]);
+                op.apply(rng.nextLong() & mask);
             }
         });
         return new RunResult(name + "_" + opType + "_" + threadCount + "t", n, universe, elapsed / 1e9);
@@ -143,54 +132,30 @@ public class BenchmarkFramework {
     }
 
     public static void main(String[] args) {
-        int bits = Integer.parseInt(args[0]);
-        runPerOpBenchmarks(bits);
+        if (args.length == 0) { printUsage(); return; }
+        int testNum = Integer.parseInt(args[0]);
+        switch (testNum) {
+            case 1 -> BenchmarkSuite.test1();
+            case 2 -> BenchmarkSuite.test2();
+            case 3 -> {
+                if (args.length < 2) {
+                    System.err.println("Test3 requires a bits argument (33-63). Example: java Main 3 48");
+                    System.exit(1);
+                }
+                BenchmarkSuite.test3(Integer.parseInt(args[1]));
+            }
+            case 4 -> BenchmarkSuite.test4();
+            case 5 -> BenchmarkSuite.test5();
+            default -> { System.err.println("Unknown test: " + testNum); printUsage(); System.exit(1); }
+        }
     }
 
-    static void runRandomBenchmark(int bits) {
-        long opCount = 1L << (bits + 2);
-        long fillCount = 1L << (bits - 2);
-
-        BenchmarkFramework framework = new BenchmarkFramework(1L << bits);
-
-        TreeSet<Long> bst = new TreeSet<>();
-        RunResult bstResult = framework.benchmarkRandom("TreeSet", 1, opCount, fillCount,
-                x -> bst.add(x),
-                x -> bst.contains(x),
-                x -> bst.ceiling(x));
-        System.out.println(bstResult);
-
-        ConcurrentYFastTrieV1 concurrentYFast = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
-        RunResult yFastResult = framework.benchmarkRandom("ConcurrentYFastTrieV1", 16, opCount, fillCount,
-                x -> concurrentYFast.insert(x),
-                x -> concurrentYFast.query(x),
-                x -> concurrentYFast.successor(x));
-        System.out.println(yFastResult);
-    }
-
-    static void runPerOpBenchmarks(int bits) {
-        int opCount = 1 << bits;
-        long universe = 1L << 31;
-
-        BenchmarkFramework framework = new BenchmarkFramework(universe);
-        framework.generateBenchmarkOps(opCount);
-
-        System.out.println("ConcurrentYFastTrieV1 + XFastTrie backend (16 threads), bits=" + 31);
-        ConcurrentYFastTrieV1 yFastV1 = new ConcurrentYFastTrieV1(31, new XFastTrie(31));
-        System.out.println(framework.benchmark("V1+XFast", 16, "insert", x -> yFastV1.insert(x)));
-        System.out.println(framework.benchmark("V1+XFast", 16, "query", x -> yFastV1.query(x)));
-        System.out.println(framework.benchmark("V1+XFast", 16, "successor", x -> yFastV1.successor(x)));
-        System.out.println(framework.benchmark("V1+XFast", 16, "delete", x -> yFastV1.delete(x)));
-
-        System.gc();
-        System.out.println("\nConcurrentYFastTrieV2 + ConcurrentXFastTrie backend (16 threads), bits=" + 31);
-        ConcurrentXFastTrie concurrentXFastTrie = new ConcurrentXFastTrie(31, 16);
-        ConcurrentYFastTrieV2 yFastV2 = new ConcurrentYFastTrieV2(31, concurrentXFastTrie);
-        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "insert", x -> yFastV2.insert(x)));
-        System.out.println("LFL after insert: " + concurrentXFastTrie.lowestFullLevel);
-        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "query", x -> yFastV2.query(x)));
-        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "successor", x -> yFastV2.successor(x)));
-        System.out.println(framework.benchmark("V2+ConcurrentXFast", 16, "delete", x -> yFastV2.delete(x)));
-        System.out.println("LFL after delete: " + concurrentXFastTrie.lowestFullLevel);
+    static void printUsage() {
+        System.out.println("Usage: java Main <testNum> [args]");
+        System.out.println("  1         bits=32          BST, XFast, ConcurrentXFast, YFastV1, YFastV2");
+        System.out.println("  2         bits=32          BST, YFastV1, YFastV2");
+        System.out.println("  3 <bits>  bits=<bits>      YFastV1, YFastV2  (33 <= bits <= 63)");
+        System.out.println("  4         bits=32          YFastV1/V2 with bucket sizes: 1x..128x bits");
+        System.out.println("  5         bits=32          YFastV1/V2 with thread counts: 1..nCPU");
     }
 }
