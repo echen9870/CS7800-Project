@@ -23,8 +23,7 @@ public class RunResult {
 
     @Override
     public String toString() {
-        return String.format(
-            "RunResult{name='%s', n=%d, universe=%d, totalTime=%.6f, ns_per_op=%.2f, Mops_per_s=%.2f}",
-            name, n, universe, timeSeconds, nsPerOp(), mopsPerSec());
+        return String.format("  %-40s %10.2f ns/op  %8.2f Mops/s  (%.3fs)",
+            name, nsPerOp(), mopsPerSec(), timeSeconds);
     }
 }
