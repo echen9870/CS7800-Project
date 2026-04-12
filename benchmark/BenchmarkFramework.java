@@ -140,15 +140,17 @@ public class BenchmarkFramework {
                 long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
                 BenchmarkSuite.threadScalability(bits, ops);
             }
+            case 2 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
+                BenchmarkSuite.threadScalabilityVsConcurrentSkipList(bits, ops);
+            }
         }
     }
 
     static void printUsage() {
         System.out.println("Usage: java Main <testNum> [args]");
-        System.out.println("  1         bits=32          BST, XFast, ConcurrentXFast, YFastV1, YFastV2");
-        System.out.println("  2         bits=32          BST, YFastV1, YFastV2");
-        System.out.println("  3 <bits>  bits=<bits>      YFastV1, YFastV2  (33 <= bits <= 63)");
-        System.out.println("  4         bits=32          YFastV1/V2 with bucket sizes: 1x..128x bits");
-        System.out.println("  5         bits=32          YFastV1/V2 with thread counts: 1..nCPU");
+        System.out.println("  1 [bits] [ops]   Thread scalability: YFastV1 vs YFastV2 (1-64 threads)");
+        System.out.println("  2 [bits] [ops]   Thread scalability: YFastV1 vs YFastV2 vs ConcurrentSkipList (1-64 threads)");
     }
 }

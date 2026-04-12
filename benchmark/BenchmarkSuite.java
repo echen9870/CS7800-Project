@@ -52,7 +52,7 @@ public class BenchmarkSuite {
 
     // Test 1 : Thread Scalability on YFastV1 and YFastV2 with parameter
     // bits : number of bits in the universe
-    // ops : number of operations
+    // ops : number of operations = 2^20 = 1048576
     public static void threadScalability(int  bits, long ops){
         long universe = 1L << bits;
         BenchmarkFramework fw = new BenchmarkFramework(universe); 
@@ -72,6 +72,33 @@ public class BenchmarkSuite {
                     x -> yv2.predecessor(x), x -> yv2.delete(x));
         }
     }
+
+    // Test 2 : Thread Scalability on YFastV1 and YFastV2 vs ConcurrentSkipList with parameter
+    // bits : number of bits in the universe
+    // ops : number of operations = 2^20 = 1048576
+    public static void threadScalabilityVsConcurrentSkipList(int bits, long ops) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        header("Thread Scalability vs SkipList: bits = " + bits + " ops = " + ops);
+        for (int threads = 1; threads <= 64; threads *= 2) {
+                subheader("Threads = " + threads);
+                ConcurrentSkipListSet<Long> skipList = new ConcurrentSkipListSet<>();
+                runAll(fw, "SkipList_t" + threads, threads, ops,
+                        x -> skipList.add(x), x -> skipList.contains(x), x -> skipList.ceiling(x),
+                        x -> skipList.floor(x), x -> skipList.remove(x));
+                ConcurrentYFastTrieV1 yv1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
+                runAll(fw, "YFastV1_t" + threads, threads, ops,
+                        x -> yv1.insert(x), x -> yv1.query(x), x -> yv1.successor(x),
+                        x -> yv1.predecessor(x), x -> yv1.delete(x));
+                ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits,
+                        new ConcurrentXFastTrie(bits, threads));
+                runAll(fw, "YFastV2_t" + threads, threads, ops,
+                        x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
+                        x -> yv2.predecessor(x), x -> yv2.delete(x));
+        }
+     }
+
+     
 
     
 }
