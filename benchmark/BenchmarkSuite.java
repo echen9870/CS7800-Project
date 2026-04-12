@@ -98,7 +98,32 @@ public class BenchmarkSuite {
         }
      }
 
-     
+     // Test 3 : LFL Lock Bounding vs Unbounding over threads
+     // bits : number of bits in the universe
+     // ops : number of operations = 2^20 = 1048576
+    public static void lflBoundedVsUnboundedOverThreads(int bits, long ops) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        header("LFL Bounded vs Unbounded: bits = " + bits + " ops = " + ops);
+        for (int threads = 1; threads <= 64; threads *= 2) {
+                subheader("Threads = " + threads);
+                // Bounded: maxLFL capped at ~3*threads (default behavior)
+                ConcurrentXFastTrie boundedXFast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 bounded = new ConcurrentYFastTrieV2(bits, boundedXFast);
+                runAll(fw, "YFastV2_bounded_t" + threads, threads, ops,
+                        x -> bounded.insert(x), x -> bounded.query(x), x -> bounded.successor(x),
+                        x -> bounded.predecessor(x), x -> bounded.delete(x));
+
+                // Unbounded: LFL can grow up to bits-1
+                ConcurrentXFastTrie unboundedXFast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 unbounded = new ConcurrentYFastTrieV2(bits, unboundedXFast);
+                runAll(fw, "YFastV2_unbounded_t" + threads, threads, ops,
+                        x -> unbounded.insert(x), x -> unbounded.query(x), x -> unbounded.successor(x),
+                        x -> unbounded.predecessor(x), x -> unbounded.delete(x));
+        }
+    }       
+
+
 
     
 }

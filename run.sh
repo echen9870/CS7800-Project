@@ -44,6 +44,12 @@ case "$1" in
         compile
         java -Xmx4g -cp out Main 2 "$BITS" "$OPS"
         ;;
+    test3)
+        BITS=${2:?'test3 requires a bits argument (e.g. ./run.sh test3 32 1048576)'}
+        OPS=${3:?'test3 requires an ops argument (e.g. ./run.sh test3 32 1048576)'}
+        compile
+        java -Xmx4g -cp out Main 3 "$BITS" "$OPS"
+        ;;
     *)
         echo "Usage: ./run.sh <command> [args]"
         echo ""
@@ -53,6 +59,7 @@ case "$1" in
         echo "  check-yfast      Run YFast concurrency correctness test"
         echo "  test1 <bits> <ops>  Thread scalability: YFastV1 vs YFastV2 (1-64 threads)"
         echo "  test2 <bits> <ops>  Thread scalability: YFastV1 vs YFastV2 vs ConcurrentSkipList(1-64 threads)"
+        echo "  test3 <bits> <ops>  LFL Bounded vs Unbounded: YFastV2 (1-64 threads)"
         exit 1
         ;;
 esac
