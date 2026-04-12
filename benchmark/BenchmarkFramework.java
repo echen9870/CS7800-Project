@@ -135,18 +135,11 @@ public class BenchmarkFramework {
         if (args.length == 0) { printUsage(); return; }
         int testNum = Integer.parseInt(args[0]);
         switch (testNum) {
-            case 1 -> BenchmarkSuite.test1();
-            case 2 -> BenchmarkSuite.test2();
-            case 3 -> {
-                if (args.length < 2) {
-                    System.err.println("Test3 requires a bits argument (33-63). Example: java Main 3 48");
-                    System.exit(1);
-                }
-                BenchmarkSuite.test3(Integer.parseInt(args[1]));
+            case 1 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
+                BenchmarkSuite.threadScalability(bits, ops);
             }
-            case 4 -> BenchmarkSuite.test4();
-            case 5 -> BenchmarkSuite.test5();
-            default -> { System.err.println("Unknown test: " + testNum); printUsage(); System.exit(1); }
         }
     }
 
