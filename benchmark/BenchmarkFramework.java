@@ -154,7 +154,14 @@ public class BenchmarkFramework {
                 int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
                 BenchmarkSuite.v2OpsSweeping(bits);
             }
-
+            case 5 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
+                BenchmarkSuite.v2OpsSweepingVsConcurrentSkipList(bits);
+            }
+            case 6 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
+                BenchmarkSuite.v2BoundedLFLOpsSweeping(bits);
+            }
         }
     }
 
@@ -164,5 +171,7 @@ public class BenchmarkFramework {
         System.out.println("  2 [bits] [ops]   Thread scalability: YFastV1 vs YFastV2 vs ConcurrentSkipList (1-64 threads)");
         System.out.println("  3 [bits] [ops]   LFL Bounded vs Unbounded: YFastV2 (1-64 threads)");
         System.out.println("  4 [bits]           YFastV2 Ops Sweeping (64 threads)");
+        System.out.println("  5 [bits]           SkipList Ops Sweeping (64 threads)");
+        System.out.println("  6 [bits]           YFastV2 Bounded LFL Ops Sweeping (64 threads)");
     }
 }

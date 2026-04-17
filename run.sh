@@ -55,6 +55,16 @@ case "$1" in
         compile
         java -Xmx8g -cp out Main 4 "$BITS"
         ;;
+    test5)
+        BITS=${2:-63}
+        compile
+        java -Xmx8g -cp out Main 5 "$BITS"
+        ;;
+    test6)
+        BITS=${2:-63}
+        compile
+        java -Xmx8g -cp out Main 6 "$BITS"
+        ;;
     *)
         echo "Usage: ./run.sh <command> [args]"
         echo ""
@@ -66,6 +76,8 @@ case "$1" in
         echo "  test2 <bits> <ops>  Thread scalability: YFastV1 vs YFastV2 vs ConcurrentSkipList(1-64 threads)"
         echo "  test3 <bits> <ops>  LFL Bounded vs Unbounded: YFastV2 (1-64 threads)"
         echo "  test4 [bits]        YFastV2 insert sweep: 2^20..2^26 at 64 threads"
+        echo "  test5 [bits]        SkipList Ops Sweeping (64 threads)"
+        echo "  test6 [bits]        YFastV2 Bounded LFL Ops Sweeping (64 threads)"
         exit 1
         ;;
 esac
