@@ -96,7 +96,8 @@ public class BenchmarkSuite {
                         x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
                         x -> yv2.predecessor(x), x -> yv2.delete(x));
         }
-     }
+    }
+     
 
      // Test 3 : LFL Lock Bounding vs Unbounding over threads
      // bits : number of bits in the universe
@@ -123,6 +124,24 @@ public class BenchmarkSuite {
         }
     }       
 
+    // Test 4 : Thread Scalability on YFastV1 and YFastV2
+    // bits : number of bits in the universe
+    public static void v2OpsSweeping(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long[] opsList = {1L << 20, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26, 1L << 27, 1L << 28, 1L << 29, 1L << 30};
+        header("YFastV2 Ops Sweep: bits = " + bits + " threads = " + threads);
+        for (long ops : opsList) {
+            ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+            ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits, xfast);
+            System.out.println(fw.benchmark("YFastV2_ops" + ops, threads, ops, "insert",
+                    x -> yv2.insert(x)));
+            System.out.println("  LFL after insert: " + xfast.lowestFullLevel
+                    + "  locks: " + xfast.locks.length
+                    + "  size: " + xfast.size.get());
+        }
+    }
 
 
     
