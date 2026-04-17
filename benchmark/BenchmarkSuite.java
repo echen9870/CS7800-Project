@@ -133,7 +133,7 @@ public class BenchmarkSuite {
         long[] opsList = {1L << 20, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26, 1L << 27, 1L << 28, 1L << 29, 1L << 30};
         header("YFastV2 Ops Sweep: bits = " + bits + " threads = " + threads);
         for (long ops : opsList) {
-            ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+            ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits);
             ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits, xfast);
             System.out.println(fw.benchmark("YFastV2_ops" + ops, threads, ops, "insert",
                     x -> yv2.insert(x)));
