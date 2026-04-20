@@ -240,9 +240,47 @@ public class BenchmarkSuite {
                 System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "query",
                         x -> sl.contains(x)));
                 }
-                
-                System.gc();
-                try { Thread.sleep(200); } catch (InterruptedException e) {}
         }
+    }
+
+    // Test 8: Unified ops sweep - V2-bounded vs V2-unbounded vs Skiplisy 
+    // at 2^24 ops, insert + query, varying threads
+    public static void unifiedOpsSweepAt24Ops(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        long ops = 1L << 24;
+        header("Unified Ops Sweep at 2^24 ops: bits=" + bits);
+        for (int threads = 1; threads <= 64; threads *= 2) {
+                subheader("threads = " + threads);
+                // --- V2 Bounded ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
+                        x -> y.query(x)));
+                }
+                
+                // --- V2 Unbounded ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "query",
+                        x -> y.query(x)));
+                }
+                
+                // --- SkipList ---
+                {
+                ConcurrentSkipListSet<Long> sl = new ConcurrentSkipListSet<>();
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "insert",
+                        x -> sl.add(x)));
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "query",
+                        x -> sl.contains(x)));
+                }
+        }
+              
     }
 }
