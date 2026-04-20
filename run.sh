@@ -72,8 +72,9 @@ case "$1" in
         ;;
     test8)
         BITS=${2:-63}
+        OPS=${3:?'test8 requires an ops argument (e.g. ./run.sh test8 32 1048576)'}
         compile
-        java -Xmx16g -cp out Main 8 "$BITS"
+        java -Xmx16g -cp out Main 8 "$BITS" "$OPS"
         ;;
     test9)
         BITS=${2:-63}
@@ -95,7 +96,7 @@ case "$1" in
         echo "  test5 [bits]        SkipList Ops Sweeping (64 threads)"
         echo "  test6 [bits]        YFastV2 Bounded LFL Ops Sweeping (64 threads)"
         echo "  test7 [bits]        Unified Ops Sweep (64 threads)"
-        echo "  test8 [bits]        Unified Thread Sweep at 2^24 ops (1-64 threads)"
+        echo "  test8 [bits] [ops]  Unified Thread Sweep (1-64 threads)"
         exit 1
         ;;
 esac

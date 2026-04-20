@@ -212,15 +212,15 @@ public class BenchmarkSuite {
         for (long ops : opsList) {
                 subheader("ops = 2^" + Long.numberOfTrailingZeros(ops));
                 
-                // --- V2 Bounded ---
-                {
-                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
-                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
-                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
-                        x -> y.insert(x)));
-                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
-                        x -> y.query(x)));
-                }
+                // // --- V2 Bounded ---
+                // {
+                // ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                // ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
+                //         x -> y.insert(x)));
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
+                //         x -> y.query(x)));
+                // }
                 
                 // --- V2 Unbounded ---
                 {
@@ -243,24 +243,22 @@ public class BenchmarkSuite {
         }
     }
 
-    // Test 8: Unified ops sweep - V2-bounded vs V2-unbounded vs Skiplisy 
-    // at 2^24 ops, insert + query, varying threads
-    public static void unifiedOpsSweepAt24Ops(int bits) {
+    // Test 8: Unified ops sweep - V2-bounded vs V2-unbounded vs Skiplist
+    public static void unifiedThreadSweep(int bits, long ops) {
         long universe = 1L << bits;
         BenchmarkFramework fw = new BenchmarkFramework(universe);
-        long ops = 1L << 24;
-        header("Unified Ops Sweep at 2^24 ops: bits=" + bits);
+        header("Unified Ops Sweep at : bits=" + bits + " ops=" + ops);
         for (int threads = 1; threads <= 64; threads *= 2) {
                 subheader("threads = " + threads);
-                // --- V2 Bounded ---
-                {
-                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
-                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
-                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
-                        x -> y.insert(x)));
-                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
-                        x -> y.query(x)));
-                }
+                // // --- V2 Bounded ---
+                // {
+                // ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                // ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
+                //         x -> y.insert(x)));
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
+                //         x -> y.query(x)));
+                // }
                 
                 // --- V2 Unbounded ---
                 {

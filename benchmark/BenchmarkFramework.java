@@ -168,7 +168,8 @@ public class BenchmarkFramework {
             }
             case 8 -> {
                 int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
-                BenchmarkSuite.unifiedOpsSweepAt24Ops(bits);
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 24;
+                BenchmarkSuite.unifiedThreadSweep(bits, ops);
             }
             case 9 -> {
                 int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
@@ -187,7 +188,7 @@ public class BenchmarkFramework {
         System.out.println("  5 [bits]           SkipList Ops Sweeping (64 threads)");
         System.out.println("  6 [bits]           YFastV2 Bounded LFL Ops Sweeping (64 threads)");
         System.out.println("  7 [bits]           Unified Ops Sweep (64 threads)");
-        System.out.println("  8 [bits]           Unified Thread Sweep at 2^24 ops (1-64 threads)");
+        System.out.println("  8 [bits] [ops]     Unified Thread Sweep (1-64 threads)");
         System.out.println("  9 [bits] [ops]     Bucket Size Sweep for V1 and V2 (64 threads)");
     }
 }
