@@ -199,6 +199,51 @@ public class BenchmarkSuite {
         }
     }
 
+    // Test 7: Unified ops sweep — V2-bounded vs V2-unbounded vs SkipList
+    // at 64 threads, insert+query, varying N.
+    public static void unifiedOpsSweep(int bits) {
+        warmup(bits);
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long[] opsList = {1L << 20, 1L << 22, 1L << 24, 1L << 26, 1L << 28};
 
-    
+        header("Unified Ops Sweep: bits=" + bits + " threads=" + threads);
+
+        for (long ops : opsList) {
+                subheader("ops = 2^" + Long.numberOfTrailingZeros(ops));
+                
+                // --- V2 Bounded ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
+                        x -> y.query(x)));
+                }
+                
+                // --- V2 Unbounded ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "query",
+                        x -> y.query(x)));
+                }
+                
+                // --- SkipList ---
+                {
+                ConcurrentSkipListSet<Long> sl = new ConcurrentSkipListSet<>();
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "insert",
+                        x -> sl.add(x)));
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "query",
+                        x -> sl.contains(x)));
+                }
+                
+                System.gc();
+                try { Thread.sleep(200); } catch (InterruptedException e) {}
+        }
+    }
 }
