@@ -202,11 +202,10 @@ public class BenchmarkSuite {
     // Test 7: Unified ops sweep — V2-bounded vs V2-unbounded vs SkipList
     // at 64 threads, insert+query, varying N.
     public static void unifiedOpsSweep(int bits) {
-        warmup(bits);
         long universe = 1L << bits;
         BenchmarkFramework fw = new BenchmarkFramework(universe);
         int threads = 64;
-        long[] opsList = {1L << 20, 1L << 22, 1L << 24, 1L << 26, 1L << 28};
+        long[] opsList = {{1L << 20, 1L << 21, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26}};
 
         header("Unified Ops Sweep: bits=" + bits + " threads=" + threads);
 
