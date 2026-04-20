@@ -288,7 +288,8 @@ public class BenchmarkSuite {
         long universe = 1L << bits;
         BenchmarkFramework fw = new BenchmarkFramework(universe);
         int threads = 16;
-        int[] multipliers = {4, 8, 16, 32, 64, 128, 256};
+        int[] multipliers = {1, 2, 4, 8, 16, 32, 64, 128};
+
 
         header("Bucket Size Sweep: bits=" + bits + " threads=" + threads + " ops=" + ops);
 
