@@ -176,6 +176,10 @@ public class BenchmarkFramework {
                 long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
                 BenchmarkSuite.bucketSizeSweep(bits, ops);
             }
+            case 10 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 24;
+                BenchmarkSuite.lflSteadyStateTest(bits);
+            }
         }
     }
 
@@ -190,5 +194,6 @@ public class BenchmarkFramework {
         System.out.println("  7 [bits]           Unified Ops Sweep (64 threads)");
         System.out.println("  8 [bits] [ops]     Unified Thread Sweep (1-64 threads)");
         System.out.println("  9 [bits] [ops]     Bucket Size Sweep for V1 and V2 (64 threads)");
+        System.out.println("  10 [bits]          LFL Steady State Test (64 threads)");
     }
 }

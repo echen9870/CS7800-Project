@@ -316,4 +316,56 @@ public class BenchmarkSuite {
                 try { Thread.sleep(200); } catch (InterruptedException e) {}
         }
     }
+
+    // Test 10: Pre-fill steady-state LFL comparison at 64 threads
+    public static void lflSteadyStateTest(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long prefillOps = 1L << 23;   // 8M — fills the trie
+        long measureOps = 1L << 20;   // 1M — the actually-timed portion
+
+        header("LFL Steady-State Test: bits=" + bits + " prefill=" + prefillOps + " measure=" + measureOps);
+
+        // --- Bounded ---
+        {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                
+                // Pre-fill — not timed
+                System.out.println("  Pre-filling bounded...");
+                Random rng = new Random(12345);
+                for (long i = 0; i < prefillOps; i++) {
+                y.insert(rng.nextLong() & (universe - 1));
+                }
+                System.out.println("  Bounded: LFL=" + xfast.lowestFullLevel 
+                        + " locks=" + xfast.locks.length 
+                        + " size=" + xfast.size.get());
+
+                // Now measure — insert a different seed so keys differ from prefill
+                System.out.println(fw.benchmark("V2bounded_steady", threads, measureOps, "insert",
+                        x -> y.insert(x)));
+        }
+
+        System.gc();
+        try { Thread.sleep(500); } catch (InterruptedException e) {}
+
+        // --- Unbounded ---
+        {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                
+                System.out.println("  Pre-filling unbounded...");
+                Random rng = new Random(12345);
+                for (long i = 0; i < prefillOps; i++) {
+                y.insert(rng.nextLong() & (universe - 1));
+                }
+                System.out.println("  Unbounded: LFL=" + xfast.lowestFullLevel 
+                        + " locks=" + xfast.locks.length 
+                        + " size=" + xfast.size.get());
+
+                System.out.println(fw.benchmark("V2unbounded_steady", threads, measureOps, "insert",
+                        x -> y.insert(x)));
+        }
+        }
 }

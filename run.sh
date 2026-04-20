@@ -82,6 +82,11 @@ case "$1" in
         compile
         java -Xmx16g -cp out Main 9 "$BITS" "$OPS"
         ;;
+    test10)
+        BITS=${2:-24}
+        compile
+        java -Xmx8g -cp out Main 10 "$BITS"
+        ;;
     *)
         echo "Usage: ./run.sh <command> [args]"
         echo ""
@@ -97,6 +102,8 @@ case "$1" in
         echo "  test6 [bits]        YFastV2 Bounded LFL Ops Sweeping (64 threads)"
         echo "  test7 [bits]        Unified Ops Sweep (64 threads)"
         echo "  test8 [bits] [ops]  Unified Thread Sweep (1-64 threads)"
+        echo "  test9 [bits] [ops]  Bucket Size Sweep for V2 (64 threads)"
+        echo "  test10 [bits]       LFL Steady State Test (64 threads)"
         exit 1
         ;;
 esac
