@@ -65,6 +65,11 @@ case "$1" in
         compile
         java -Xmx8g -cp out Main 6 "$BITS"
         ;;
+    test7)
+        BITS=${2:-63}
+        compile
+        java -Xmx16g -cp out Main 7 "$BITS"
+        ;;
     *)
         echo "Usage: ./run.sh <command> [args]"
         echo ""

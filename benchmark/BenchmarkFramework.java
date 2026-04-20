@@ -162,6 +162,11 @@ public class BenchmarkFramework {
                 int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
                 BenchmarkSuite.v2BoundedLFLOpsSweeping(bits);
             }
+            case 7 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                BenchmarkSuite.unifiedOpsSweep(bits);
+            }
+
         }
     }
 
@@ -173,5 +178,6 @@ public class BenchmarkFramework {
         System.out.println("  4 [bits]           YFastV2 Ops Sweeping (64 threads)");
         System.out.println("  5 [bits]           SkipList Ops Sweeping (64 threads)");
         System.out.println("  6 [bits]           YFastV2 Bounded LFL Ops Sweeping (64 threads)");
+        System.out.println("  7 [bits]           Unified Ops Sweep (64 threads)");
     }
 }
