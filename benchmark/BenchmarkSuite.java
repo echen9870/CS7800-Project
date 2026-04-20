@@ -6,7 +6,7 @@ import xFast.ConcurrentXFastTrie;
 import xFast.XFastTrie;
 import yFast.ConcurrentYFastTrieV1;
 import yFast.ConcurrentYFastTrieV2;
-
+import java.util.Random;
 public class BenchmarkSuite {
 
     static final int DEFAULT_THREADS = 16;
@@ -50,10 +50,29 @@ public class BenchmarkSuite {
         runPerOp(fw,  name + "_perOp",  threads, n, insert, query, successor, predecessor, delete);
     }
 
+    static void warmup(int bits){
+        ConcurrentYFastTrieV1 warmV1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
+        ConcurrentYFastTrieV2 warmV2 = new ConcurrentYFastTrieV2(bits, new ConcurrentXFastTrie(bits, 4));
+        Random rng = new Random(42);
+        long universe = 1L << bits;
+        for (int i = 0; i < 200_000; i++) {
+                long k = rng.nextLong() & (universe - 1);
+                warmV1.insert(k); warmV1.query(k); warmV1.successor(k); warmV1.predecessor(k); warmV1.delete(k);
+                warmV2.insert(k); warmV2.query(k); warmV2.successor(k); warmV2.predecessor(k); warmV2.delete(k);
+        }
+        System.gc();
+        try{
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     // Test 1 : Thread Scalability on YFastV1 and YFastV2 with parameter
     // bits : number of bits in the universe
     // ops : number of operations = 2^20 = 1048576
     public static void threadScalability(int  bits, long ops){
+        warmup(bits);
         long universe = 1L << bits;
         BenchmarkFramework fw = new BenchmarkFramework(universe); 
         header("Thread Scalability: bits = " + bits + " ops = " + ops);
