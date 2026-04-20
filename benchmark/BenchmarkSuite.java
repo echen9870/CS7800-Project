@@ -283,4 +283,55 @@ public class BenchmarkSuite {
         }
               
     }
+
+    // Test 9: SubUniverse Bucket Size Sweep for V1 and V2
+    // Sweeps bucket size 
+    public static void bucketSizeSweep(int bits, long ops){
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 16;
+        int[] multipliers = {1, 2, 4, 8, 16, 32, 64, 128};
+
+        header("Bucket Size Sweep: bits=" + bits + " threads=" + threads + " ops=" + ops);
+
+        for (int mult : multipliers) {
+                int bucketSize = mult * bits;
+                subheader("bucket = " + mult + "x bits = " + bucketSize);
+
+                // --- V1 ---
+                {
+                ConcurrentYFastTrieV1 y = new ConcurrentYFastTrieV1(bits,
+                        new XFastTrie(bits), bucketSize);
+                System.out.println(fw.benchmark("V1_b" + bucketSize, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V1_b" + bucketSize, threads, ops, "query",
+                        x -> y.query(x)));
+                System.out.println(fw.benchmark("V1_b" + bucketSize, threads, ops, "successor",
+                        x -> y.successor(x)));
+                System.out.println(fw.benchmark("V1_b" + bucketSize, threads, ops, "predecessor",
+                        x -> y.predecessor(x)));
+                System.out.println(fw.benchmark("V1_b" + bucketSize, threads, ops, "delete",
+                        x -> y.delete(x)));
+                }
+
+                // --- V2 ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast, bucketSize);
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "query",
+                        x -> y.query(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "successor",
+                        x -> y.successor(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "predecessor",
+                        x -> y.predecessor(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "delete",
+                        x -> y.delete(x)));
+                }
+
+                System.gc();
+                try { Thread.sleep(200); } catch (InterruptedException e) {}
+        }
+    }
 }

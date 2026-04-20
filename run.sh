@@ -75,6 +75,12 @@ case "$1" in
         compile
         java -Xmx16g -cp out Main 8 "$BITS"
         ;;
+    test9)
+        BITS=${2:-63}
+        OPS=${3:?'test9 requires an ops argument (e.g. ./run.sh test9 32 1048576)'}
+        compile
+        java -Xmx16g -cp out Main 9 "$BITS" "$OPS"
+        ;;
     *)
         echo "Usage: ./run.sh <command> [args]"
         echo ""
