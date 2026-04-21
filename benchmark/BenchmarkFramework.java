@@ -135,27 +135,65 @@ public class BenchmarkFramework {
         if (args.length == 0) { printUsage(); return; }
         int testNum = Integer.parseInt(args[0]);
         switch (testNum) {
-            case 1 -> BenchmarkSuite.test1();
-            case 2 -> BenchmarkSuite.test2();
-            case 3 -> {
-                if (args.length < 2) {
-                    System.err.println("Test3 requires a bits argument (33-63). Example: java Main 3 48");
-                    System.exit(1);
-                }
-                BenchmarkSuite.test3(Integer.parseInt(args[1]));
+            case 1 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
+                BenchmarkSuite.threadScalability(bits, ops);
             }
-            case 4 -> BenchmarkSuite.test4();
-            case 5 -> BenchmarkSuite.test5();
-            default -> { System.err.println("Unknown test: " + testNum); printUsage(); System.exit(1); }
+            case 2 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
+                BenchmarkSuite.threadScalabilityVsConcurrentSkipList(bits, ops);
+            }
+            case 3 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
+                BenchmarkSuite.lflBoundedVsUnboundedOverThreads(bits, ops);
+            }
+            case 4 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
+                BenchmarkSuite.v2OpsSweeping(bits);
+            }
+            case 5 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
+                BenchmarkSuite.v2OpsSweepingVsConcurrentSkipList(bits);
+            }
+            case 6 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 63;
+                BenchmarkSuite.v2BoundedLFLOpsSweeping(bits);
+            }
+            case 7 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                BenchmarkSuite.unifiedOpsSweep(bits);
+            }
+            case 8 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 24;
+                BenchmarkSuite.unifiedThreadSweep(bits, ops);
+            }
+            case 9 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 32;
+                long ops = (args.length >= 3) ? Long.parseLong(args[2]) : 1L << 20;
+                BenchmarkSuite.bucketSizeSweep(bits, ops);
+            }
+            case 10 -> {
+                int bits = (args.length >= 2) ? Integer.parseInt(args[1]) : 24;
+                BenchmarkSuite.lflSteadyStateTest(bits);
+            }
         }
     }
 
     static void printUsage() {
         System.out.println("Usage: java Main <testNum> [args]");
-        System.out.println("  1         bits=32          BST, XFast, ConcurrentXFast, YFastV1, YFastV2");
-        System.out.println("  2         bits=32          BST, YFastV1, YFastV2");
-        System.out.println("  3 <bits>  bits=<bits>      YFastV1, YFastV2  (33 <= bits <= 63)");
-        System.out.println("  4         bits=32          YFastV1/V2 with bucket sizes: 1x..128x bits");
-        System.out.println("  5         bits=32          YFastV1/V2 with thread counts: 1..nCPU");
+        System.out.println("  1 [bits] [ops]   Thread scalability: YFastV1 vs YFastV2 (1-64 threads)");
+        System.out.println("  2 [bits] [ops]   Thread scalability: YFastV1 vs YFastV2 vs ConcurrentSkipList (1-64 threads)");
+        System.out.println("  3 [bits] [ops]   LFL Bounded vs Unbounded: YFastV2 (1-64 threads)");
+        System.out.println("  4 [bits]           YFastV2 Ops Sweeping (64 threads)");
+        System.out.println("  5 [bits]           SkipList Ops Sweeping (64 threads)");
+        System.out.println("  6 [bits]           YFastV2 Bounded LFL Ops Sweeping (64 threads)");
+        System.out.println("  7 [bits]           Unified Ops Sweep (64 threads)");
+        System.out.println("  8 [bits] [ops]     Unified Thread Sweep (1-64 threads)");
+        System.out.println("  9 [bits] [ops]     Bucket Size Sweep for V1 and V2 (64 threads)");
+        System.out.println("  10 [bits]          LFL Steady State Test (64 threads)");
     }
 }

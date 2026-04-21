@@ -6,7 +6,7 @@ import xFast.ConcurrentXFastTrie;
 import xFast.XFastTrie;
 import yFast.ConcurrentYFastTrieV1;
 import yFast.ConcurrentYFastTrieV2;
-
+import java.util.Random;
 public class BenchmarkSuite {
 
     static final int DEFAULT_THREADS = 16;
@@ -50,141 +50,322 @@ public class BenchmarkSuite {
         runPerOp(fw,  name + "_perOp",  threads, n, insert, query, successor, predecessor, delete);
     }
 
-    // Test 1: sweep universe/op counts {2^16, 2^20, 2^24}
-    // compares BST / XFast / ConcurrentXFast / YFastV1 / YFastV2
-    // concurrent data structures are given 16 threads
-    public static void test1() {
-        header("Test1: sweep bits={16,20,24}");
-
-        for (int bits : new int[]{ 14, 16, 18 }) {
-            long n = 1L << bits;
-            BenchmarkFramework fw = new BenchmarkFramework(1L << bits);
-            subheader("bits=" + bits + "  ops = 2^" + bits + " = " + n);
-
-            TreeSet<Long> bst = new TreeSet<>();
-            runAll(fw, "BST", 1, n,
-                            x -> bst.add(x), x -> bst.contains(x), x -> bst.ceiling(x),
-                            x -> bst.floor(x), x -> bst.remove(x));
-
-            ConcurrentSkipListSet<Long> skipList = new ConcurrentSkipListSet<>();
-            runAll(fw, "SkipList", 16, n,
-                    x -> skipList.add(x), x -> skipList.contains(x), x -> skipList.ceiling(x),
-                    x -> skipList.floor(x), x -> skipList.remove(x));
-
-            XFastTrie xfast = new XFastTrie(bits);
-            runAll(fw, "XFastTrie", 16, n,
-                    x -> xfast.insert(x), x -> xfast.query(x), x -> xfast.successor(x),
-                    x -> xfast.predecessor(x), x -> xfast.delete(x));
-
-            ConcurrentXFastTrie cxfast = new ConcurrentXFastTrie(bits, 16);
-            runAll(fw, "ConcurrentXFastTrie", 16, n,
-                    x -> cxfast.insert(x), x -> cxfast.query(x), x -> cxfast.successor(x),
-                    x -> cxfast.predecessor(x), x -> cxfast.delete(x));
-
-            ConcurrentYFastTrieV1 yv1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
-            runAll(fw, "YFastV1", 16, n,
-                    x -> yv1.insert(x), x -> yv1.query(x), x -> yv1.successor(x),
-                    x -> yv1.predecessor(x), x -> yv1.delete(x));
-
-            ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits,
-                    new ConcurrentXFastTrie(bits, 16));
-            runAll(fw, "YFastV2", 16, n,
-                    x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
-                    x -> yv2.predecessor(x), x -> yv2.delete(x));
-        }
-    }
-
-    // Test 2: universe sizes > 2 ** 31, BST vs YFastV1 vs YFastV2
-    // concurrent data structures are given 16 threads
-    public static void test2() {
-        int bits = 32;
-        header("Test2: bits=" + bits + "  universe=2^" + bits);
-        BenchmarkFramework fw = new BenchmarkFramework(1L << 32);
-
-        ConcurrentSkipListSet<Long> bst = new ConcurrentSkipListSet<>();
-        runAll(fw, "BST", 16, OP_COUNT,
-                x -> bst.add(x), x -> bst.contains(x), x -> bst.ceiling(x),
-                x -> bst.floor(x), x -> bst.remove(x));
-
-        ConcurrentYFastTrieV1 yv1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
-        runAll(fw, "YFastV1", 16, OP_COUNT,
-                x -> yv1.insert(x), x -> yv1.query(x), x -> yv1.successor(x),
-                x -> yv1.predecessor(x), x -> yv1.delete(x));
-
-        ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits,
-                new ConcurrentXFastTrie(bits, 16));
-        runAll(fw, "YFastV2", 16, OP_COUNT,
-                x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
-                x -> yv2.predecessor(x), x -> yv2.delete(x));
-    }
-
-    // Test 3: large universe passed at runtime (bits > 32)
-    // compares YFastV2 with LFL bounded by 3*threads vs YFastV2 with no LFL cap
-    public static void test3(int bits) {
+    static void warmup(int bits){
+        ConcurrentYFastTrieV1 warmV1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
+        ConcurrentYFastTrieV2 warmV2 = new ConcurrentYFastTrieV2(bits, new ConcurrentXFastTrie(bits, 4));
+        Random rng = new Random(42);
         long universe = 1L << bits;
-        header("Test3: bits=" + bits + "  universe=2^" + bits);
-        BenchmarkFramework fw = new BenchmarkFramework(universe);
-
-        // bounded: maxLFL capped at log2(3 * threads), limits partition lock count
-        ConcurrentYFastTrieV2 bounded = new ConcurrentYFastTrieV2(bits,
-                new ConcurrentXFastTrie(bits, DEFAULT_THREADS));
-        runAll(fw, "YFastV2_LFLbounded", DEFAULT_THREADS, OP_COUNT,
-                x -> bounded.insert(x), x -> bounded.query(x), x -> bounded.successor(x),
-                x -> bounded.predecessor(x), x -> bounded.delete(x));
-
-        // unbounded: LFL can grow all the way to bits-1, more partition locks but finer grained
-        ConcurrentYFastTrieV2 unbounded = new ConcurrentYFastTrieV2(bits,
-                new ConcurrentXFastTrie(bits, DEFAULT_THREADS, bits - 1));
-        runAll(fw, "YFastV2_LFLunbounded", DEFAULT_THREADS, OP_COUNT,
-                x -> unbounded.insert(x), x -> unbounded.query(x), x -> unbounded.successor(x),
-                x -> unbounded.predecessor(x), x -> unbounded.delete(x));
-    }
-
-    // Test 4: sweep bucket sizes (1x to 128x bits) for YFastV1 and YFastV2, universe=2^32
-    public static void test4() {
-        int bits = 32;
-        header("Test4: bucket-size sweep  bits=" + bits + "  universe=2^" + bits);
-        int[] multipliers = {1, 2, 4, 8, 16, 32, 64, 128};
-        BenchmarkFramework fw = new BenchmarkFramework(UNIVERSE);
-
-        for (int mult : multipliers) {
-            int bucketSize = mult * bits;
-            subheader("bucket = " + mult + " × bits = " + bucketSize);
-
-            ConcurrentYFastTrieV1 yv1 = new ConcurrentYFastTrieV1(bits,
-                    new XFastTrie(bits), bucketSize);
-            runAll(fw, "YFastV1_b" + bucketSize, DEFAULT_THREADS, OP_COUNT,
-                    x -> yv1.insert(x), x -> yv1.query(x), x -> yv1.successor(x),
-                    x -> yv1.predecessor(x), x -> yv1.delete(x));
-
-            ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits,
-                    new ConcurrentXFastTrie(bits, DEFAULT_THREADS), bucketSize);
-            runAll(fw, "YFastV2_b" + bucketSize, DEFAULT_THREADS, OP_COUNT,
-                    x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
-                    x -> yv2.predecessor(x), x -> yv2.delete(x));
+        for (int i = 0; i < 200_000; i++) {
+                long k = rng.nextLong() & (universe - 1);
+                warmV1.insert(k); warmV1.query(k); warmV1.successor(k); warmV1.predecessor(k); warmV1.delete(k);
+                warmV2.insert(k); warmV2.query(k); warmV2.successor(k); warmV2.predecessor(k); warmV2.delete(k);
+        }
+        System.gc();
+        try{
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    // Test 5: sweep thread counts (1 to nCPU) for YFastV1 and YFastV2, universe=2^32
-    public static void test5() {
-        int bits = 32;
-        int maxThreads = Runtime.getRuntime().availableProcessors();
-        header("ThreadTest: bits=" + bits + "  maxThreads=" + maxThreads);
-        BenchmarkFramework fw = new BenchmarkFramework(UNIVERSE);
+    // Test 1 : Thread Scalability on YFastV1 and YFastV2 with parameter
+    // bits : number of bits in the universe
+    // ops : number of operations = 2^20 = 1048576
+    public static void threadScalability(int  bits, long ops){
+        warmup(bits);
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe); 
+        header("Thread Scalability: bits = " + bits + " ops = " + ops);
 
-        for (int threads = 1; threads <= maxThreads; threads *= 2) {
-            subheader("threads=" + threads);
-
+        for(int threads = 1; threads <= 64; threads *= 2){
+            subheader("Threads = " + threads);
             ConcurrentYFastTrieV1 yv1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
-            runAll(fw, "YFastV1_t" + threads, threads, OP_COUNT,
+            runAll(fw, "YFastV1_t" + threads, threads, ops,
                     x -> yv1.insert(x), x -> yv1.query(x), x -> yv1.successor(x),
                     x -> yv1.predecessor(x), x -> yv1.delete(x));
 
             ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits,
                     new ConcurrentXFastTrie(bits, threads));
-            runAll(fw, "YFastV2_t" + threads, threads, OP_COUNT,
+            runAll(fw, "YFastV2_t" + threads, threads, ops,
                     x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
                     x -> yv2.predecessor(x), x -> yv2.delete(x));
         }
     }
+
+    // Test 2 : Thread Scalability on YFastV1 and YFastV2 vs ConcurrentSkipList with parameter
+    // bits : number of bits in the universe
+    // ops : number of operations = 2^20 = 1048576
+    public static void threadScalabilityVsConcurrentSkipList(int bits, long ops) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        header("Thread Scalability vs SkipList: bits = " + bits + " ops = " + ops);
+        for (int threads = 1; threads <= 64; threads *= 2) {
+                subheader("Threads = " + threads);
+                ConcurrentSkipListSet<Long> skipList = new ConcurrentSkipListSet<>();
+                runAll(fw, "SkipList_t" + threads, threads, ops,
+                        x -> skipList.add(x), x -> skipList.contains(x), x -> skipList.ceiling(x),
+                        x -> skipList.floor(x), x -> skipList.remove(x));
+                ConcurrentYFastTrieV1 yv1 = new ConcurrentYFastTrieV1(bits, new XFastTrie(bits));
+                runAll(fw, "YFastV1_t" + threads, threads, ops,
+                        x -> yv1.insert(x), x -> yv1.query(x), x -> yv1.successor(x),
+                        x -> yv1.predecessor(x), x -> yv1.delete(x));
+                ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits,
+                        new ConcurrentXFastTrie(bits, threads));
+                runAll(fw, "YFastV2_t" + threads, threads, ops,
+                        x -> yv2.insert(x), x -> yv2.query(x), x -> yv2.successor(x),
+                        x -> yv2.predecessor(x), x -> yv2.delete(x));
+        }
+    }
+     
+
+     // Test 3 : LFL Lock Bounding vs Unbounding over threads
+     // bits : number of bits in the universe
+     // ops : number of operations = 2^20 = 1048576
+    public static void lflBoundedVsUnboundedOverThreads(int bits, long ops) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        header("LFL Bounded vs Unbounded: bits = " + bits + " ops = " + ops);
+        for (int threads = 1; threads <= 64; threads *= 2) {
+                subheader("Threads = " + threads);
+                // Bounded: maxLFL capped at ~3*threads (default behavior)
+                ConcurrentXFastTrie boundedXFast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 bounded = new ConcurrentYFastTrieV2(bits, boundedXFast);
+                runAll(fw, "YFastV2_bounded_t" + threads, threads, ops,
+                        x -> bounded.insert(x), x -> bounded.query(x), x -> bounded.successor(x),
+                        x -> bounded.predecessor(x), x -> bounded.delete(x));
+
+                // Unbounded: LFL can grow up to bits-1
+                ConcurrentXFastTrie unboundedXFast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 unbounded = new ConcurrentYFastTrieV2(bits, unboundedXFast);
+                runAll(fw, "YFastV2_unbounded_t" + threads, threads, ops,
+                        x -> unbounded.insert(x), x -> unbounded.query(x), x -> unbounded.successor(x),
+                        x -> unbounded.predecessor(x), x -> unbounded.delete(x));
+        }
+    }       
+
+    // Test 4 : Unbounded LFL on  YFastV2 Ops Sweep
+    // bits : number of bits in the universe
+    public static void v2OpsSweeping(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long[] opsList = {1L << 20, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26, 1L << 27, 1L << 28, 1L << 29};
+        header("YFastV2 Ops Sweep: bits = " + bits + " threads = " + threads);
+        for (long ops : opsList) {
+            subheader("ops = " + ops + " (2^" + Long.numberOfTrailingZeros(ops) + ")");
+            ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits);
+            ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits, xfast);
+            System.out.println(fw.benchmark("YFastV2_ops" + ops, threads, ops, "insert",
+                    x -> yv2.insert(x)));
+            System.out.println("  LFL after insert: " + xfast.lowestFullLevel
+                    + "  locks: " + xfast.locks.length
+                    + "  size: " + xfast.size.get());
+        }
+    }
+
+    // Test 5 : Ops Sweep on ConcurrentSkipList
+    // bits : number of bits in the universe
+    public static void v2OpsSweepingVsConcurrentSkipList(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long[] opsList = {1L << 20, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26, 1L << 27, 1L << 28, 1L << 29};
+        header("SkipList Ops Sweep: bits = " + bits + " threads = " + threads);
+        for (long ops : opsList) {
+            subheader("ops = " + ops + " (2^" + Long.numberOfTrailingZeros(ops) + ")");
+            ConcurrentSkipListSet<Long> skipList = new ConcurrentSkipListSet<>();
+            System.out.println(fw.benchmark("SkipList_ops" + ops, threads, ops, "insert",
+                    x -> skipList.add(x)));
+        }
+    }
+
+    // Test 6: Ops Sweep on YFastV2 bounded LFL
+    // bits : number of bits in the universe
+    public static void v2BoundedLFLOpsSweeping(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long[] opsList = {1L << 20, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26, 1L << 27, 1L << 28, 1L << 29};
+        header("YFastV2 Bounded LFL Ops Sweep: bits = " + bits + " threads = " + threads);
+        for (long ops : opsList) {
+            subheader("ops = " + ops + " (2^" + Long.numberOfTrailingZeros(ops) + ")");
+            ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+            ConcurrentYFastTrieV2 yv2 = new ConcurrentYFastTrieV2(bits, xfast);
+            System.out.println(fw.benchmark("YFastV2_ops" + ops, threads, ops, "insert",
+                    x -> yv2.insert(x)));
+            System.out.println("  LFL after insert: " + xfast.lowestFullLevel
+                    + "  locks: " + xfast.locks.length
+                    + "  size: " + xfast.size.get());
+        }
+    }
+
+    // Test 7: Unified ops sweep — V2-bounded vs V2-unbounded vs SkipList
+    // at 64 threads, insert+query, varying N.
+    public static void unifiedOpsSweep(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long[] opsList = {1L << 21, 1L << 22, 1L << 23, 1L << 24, 1L << 25, 1L << 26, 1L << 27};
+
+        header("Unified Ops Sweep: bits=" + bits + " threads=" + threads);
+
+        for (long ops : opsList) {
+                subheader("ops = 2^" + Long.numberOfTrailingZeros(ops));
+                
+                // // --- V2 Bounded ---
+                // {
+                // ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                // ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
+                //         x -> y.insert(x)));
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
+                //         x -> y.query(x)));
+                // }
+                
+                // --- V2 Unbounded ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "query",
+                        x -> y.query(x)));
+                }
+                
+                // --- SkipList ---
+                {
+                ConcurrentSkipListSet<Long> sl = new ConcurrentSkipListSet<>();
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "insert",
+                        x -> sl.add(x)));
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "query",
+                        x -> sl.contains(x)));
+                }
+        }
+    }
+
+    // Test 8: Unified thread sweep - V2-bounded vs V2-unbounded vs Skiplist
+    public static void unifiedThreadSweep(int bits, long ops) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        header("Unified threads Sweep at : bits=" + bits + " ops=" + ops);
+        for (int threads = 1; threads <= 64; threads *= 2) {
+                subheader("threads = " + threads);
+                // // --- V2 Bounded ---
+                // {
+                // ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                // ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "insert",
+                //         x -> y.insert(x)));
+                // System.out.println(fw.benchmark("V2bounded_" + ops, threads, ops, "query",
+                //         x -> y.query(x)));
+                // }
+                
+                // --- V2 Unbounded ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2unbounded_" + ops, threads, ops, "query",
+                        x -> y.query(x)));
+                }
+                
+                // --- SkipList ---
+                {
+                ConcurrentSkipListSet<Long> sl = new ConcurrentSkipListSet<>();
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "insert",
+                        x -> sl.add(x)));
+                System.out.println(fw.benchmark("SkipList_" + ops, threads, ops, "query",
+                        x -> sl.contains(x)));
+                }
+        }
+              
+    }
+
+    // Test 9: SubUniverse Bucket Size Sweep for V2
+    // Sweeps bucket size 
+    public static void bucketSizeSweep(int bits, long ops){
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 16;
+        int[] multipliers = {1, 2, 4, 8, 16, 32, 64, 128};
+
+
+        header("Bucket Size Sweep: bits=" + bits + " threads=" + threads + " ops=" + ops);
+
+        for (int mult : multipliers) {
+                int bucketSize = mult * bits;
+                subheader("bucket = " + mult + "x bits = " + bucketSize);
+                // --- V2 ---
+                {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast, bucketSize);
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "insert",
+                        x -> y.insert(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "query",
+                        x -> y.query(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "successor",
+                        x -> y.successor(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "predecessor",
+                        x -> y.predecessor(x)));
+                System.out.println(fw.benchmark("V2_b" + bucketSize, threads, ops, "delete",
+                        x -> y.delete(x)));
+                }
+
+                System.gc();
+                try { Thread.sleep(200); } catch (InterruptedException e) {}
+        }
+    }
+
+    // Test 10: Pre-fill steady-state LFL comparison at 64 threads
+    public static void lflSteadyStateTest(int bits) {
+        long universe = 1L << bits;
+        BenchmarkFramework fw = new BenchmarkFramework(universe);
+        int threads = 64;
+        long prefillOps = 1L << 23;   // 8M — fills the trie
+        long measureOps = 1L << 20;   // 1M — the actually-timed portion
+
+        header("LFL Steady-State Test: bits=" + bits + " prefill=" + prefillOps + " measure=" + measureOps);
+
+        // --- Bounded ---
+        {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                
+                // Pre-fill — not timed
+                System.out.println("  Pre-filling bounded...");
+                Random rng = new Random(12345);
+                for (long i = 0; i < prefillOps; i++) {
+                y.insert(rng.nextLong() & (universe - 1));
+                }
+                System.out.println("  Bounded: LFL=" + xfast.lowestFullLevel 
+                        + " locks=" + xfast.locks.length 
+                        + " size=" + xfast.size.get());
+
+                // Now measure — insert a different seed so keys differ from prefill
+                System.out.println(fw.benchmark("V2bounded_steady", threads, measureOps, "insert",
+                        x -> y.insert(x)));
+        }
+
+        System.gc();
+        try { Thread.sleep(500); } catch (InterruptedException e) {}
+
+        // --- Unbounded ---
+        {
+                ConcurrentXFastTrie xfast = new ConcurrentXFastTrie(bits, threads, bits - 1);
+                ConcurrentYFastTrieV2 y = new ConcurrentYFastTrieV2(bits, xfast);
+                
+                System.out.println("  Pre-filling unbounded...");
+                Random rng = new Random(12345);
+                for (long i = 0; i < prefillOps; i++) {
+                y.insert(rng.nextLong() & (universe - 1));
+                }
+                System.out.println("  Unbounded: LFL=" + xfast.lowestFullLevel 
+                        + " locks=" + xfast.locks.length 
+                        + " size=" + xfast.size.get());
+
+                System.out.println(fw.benchmark("V2unbounded_steady", threads, measureOps, "insert",
+                        x -> y.insert(x)));
+        }
+        }
 }
