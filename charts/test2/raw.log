@@ -1,0 +1,159 @@
+[jk2001@sigmod CS7800-Project]$ ./run.sh test2 63 8388608
+Note: xFast/ConcurrentXFastTrie.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+=== Thread Scalability vs SkipList: bits = 63 ops = 8388608 ===
+-- Threads = 1 --
+-- SkipList_t1  threads=1 --
+  SkipList_t1_random_1thread                  1727.16 ns/op      0.58 Mops/s  (14.488s)
+  SkipList_t1_perOp_insert_1t                 2202.09 ns/op      0.45 Mops/s  (18.472s)
+  SkipList_t1_perOp_query_1t                  2549.07 ns/op      0.39 Mops/s  (21.383s)
+  SkipList_t1_perOp_successor_1t              2235.98 ns/op      0.45 Mops/s  (18.757s)
+  SkipList_t1_perOp_predecessor_1t            2190.06 ns/op      0.46 Mops/s  (18.372s)
+  SkipList_t1_perOp_delete_1t                 2587.74 ns/op      0.39 Mops/s  (21.708s)
+-- YFastV1_t1  threads=1 --
+  YFastV1_t1_random_1thread                    757.53 ns/op      1.32 Mops/s  (6.355s)
+  YFastV1_t1_perOp_insert_1t                  1125.35 ns/op      0.89 Mops/s  (9.440s)
+  YFastV1_t1_perOp_query_1t                    676.80 ns/op      1.48 Mops/s  (5.677s)
+  YFastV1_t1_perOp_successor_1t                630.40 ns/op      1.59 Mops/s  (5.288s)
+  YFastV1_t1_perOp_predecessor_1t              590.10 ns/op      1.69 Mops/s  (4.950s)
+  YFastV1_t1_perOp_delete_1t                  1042.32 ns/op      0.96 Mops/s  (8.744s)
+-- YFastV2_t1  threads=1 --
+  YFastV2_t1_random_1thread                    698.21 ns/op      1.43 Mops/s  (5.857s)
+  YFastV2_t1_perOp_insert_1t                  1072.73 ns/op      0.93 Mops/s  (8.999s)
+  YFastV2_t1_perOp_query_1t                    619.20 ns/op      1.61 Mops/s  (5.194s)
+  YFastV2_t1_perOp_successor_1t                627.62 ns/op      1.59 Mops/s  (5.265s)
+  YFastV2_t1_perOp_predecessor_1t              606.20 ns/op      1.65 Mops/s  (5.085s)
+  YFastV2_t1_perOp_delete_1t                  1114.33 ns/op      0.90 Mops/s  (9.348s)
+-- Threads = 2 --
+-- SkipList_t2  threads=2 --
+  SkipList_t2_random_2thread                   850.58 ns/op      1.18 Mops/s  (7.135s)
+  SkipList_t2_perOp_insert_2t                 1220.34 ns/op      0.82 Mops/s  (10.237s)
+  SkipList_t2_perOp_query_2t                  1131.18 ns/op      0.88 Mops/s  (9.489s)
+  SkipList_t2_perOp_successor_2t              1140.04 ns/op      0.88 Mops/s  (9.563s)
+  SkipList_t2_perOp_predecessor_2t            1147.85 ns/op      0.87 Mops/s  (9.629s)
+  SkipList_t2_perOp_delete_2t                 1476.39 ns/op      0.68 Mops/s  (12.385s)
+-- YFastV1_t2  threads=2 --
+  YFastV1_t2_random_2thread                    390.66 ns/op      2.56 Mops/s  (3.277s)
+  YFastV1_t2_perOp_insert_2t                   581.81 ns/op      1.72 Mops/s  (4.881s)
+  YFastV1_t2_perOp_query_2t                    320.33 ns/op      3.12 Mops/s  (2.687s)
+  YFastV1_t2_perOp_successor_2t                321.23 ns/op      3.11 Mops/s  (2.695s)
+  YFastV1_t2_perOp_predecessor_2t              302.52 ns/op      3.31 Mops/s  (2.538s)
+  YFastV1_t2_perOp_delete_2t                   589.45 ns/op      1.70 Mops/s  (4.945s)
+-- YFastV2_t2  threads=2 --
+  YFastV2_t2_random_2thread                    411.65 ns/op      2.43 Mops/s  (3.453s)
+  YFastV2_t2_perOp_insert_2t                   616.65 ns/op      1.62 Mops/s  (5.173s)
+  YFastV2_t2_perOp_query_2t                    352.73 ns/op      2.84 Mops/s  (2.959s)
+  YFastV2_t2_perOp_successor_2t                351.12 ns/op      2.85 Mops/s  (2.945s)
+  YFastV2_t2_perOp_predecessor_2t              328.89 ns/op      3.04 Mops/s  (2.759s)
+  YFastV2_t2_perOp_delete_2t                   629.26 ns/op      1.59 Mops/s  (5.279s)
+-- Threads = 4 --
+-- SkipList_t4  threads=4 --
+  SkipList_t4_random_4thread                   567.67 ns/op      1.76 Mops/s  (4.762s)
+  SkipList_t4_perOp_insert_4t                  619.68 ns/op      1.61 Mops/s  (5.198s)
+  SkipList_t4_perOp_query_4t                   552.58 ns/op      1.81 Mops/s  (4.635s)
+  SkipList_t4_perOp_successor_4t               564.76 ns/op      1.77 Mops/s  (4.738s)
+  SkipList_t4_perOp_predecessor_4t             598.86 ns/op      1.67 Mops/s  (5.024s)
+  SkipList_t4_perOp_delete_4t                  771.73 ns/op      1.30 Mops/s  (6.474s)
+-- YFastV1_t4  threads=4 --
+  YFastV1_t4_random_4thread                    284.89 ns/op      3.51 Mops/s  (2.390s)
+  YFastV1_t4_perOp_insert_4t                   387.10 ns/op      2.58 Mops/s  (3.247s)
+  YFastV1_t4_perOp_query_4t                    239.44 ns/op      4.18 Mops/s  (2.009s)
+  YFastV1_t4_perOp_successor_4t                172.94 ns/op      5.78 Mops/s  (1.451s)
+  YFastV1_t4_perOp_predecessor_4t              164.03 ns/op      6.10 Mops/s  (1.376s)
+  YFastV1_t4_perOp_delete_4t                   407.89 ns/op      2.45 Mops/s  (3.422s)
+-- YFastV2_t4  threads=4 --
+  YFastV2_t4_random_4thread                    265.60 ns/op      3.77 Mops/s  (2.228s)
+  YFastV2_t4_perOp_insert_4t                   387.08 ns/op      2.58 Mops/s  (3.247s)
+  YFastV2_t4_perOp_query_4t                    173.75 ns/op      5.76 Mops/s  (1.458s)
+  YFastV2_t4_perOp_successor_4t                170.79 ns/op      5.86 Mops/s  (1.433s)
+  YFastV2_t4_perOp_predecessor_4t              169.02 ns/op      5.92 Mops/s  (1.418s)
+  YFastV2_t4_perOp_delete_4t                   404.27 ns/op      2.47 Mops/s  (3.391s)
+-- Threads = 8 --
+-- SkipList_t8  threads=8 --
+  SkipList_t8_random_8thread                   284.45 ns/op      3.52 Mops/s  (2.386s)
+  SkipList_t8_perOp_insert_8t                  335.15 ns/op      2.98 Mops/s  (2.811s)
+  SkipList_t8_perOp_query_8t                   269.24 ns/op      3.71 Mops/s  (2.259s)
+  SkipList_t8_perOp_successor_8t               278.39 ns/op      3.59 Mops/s  (2.335s)
+  SkipList_t8_perOp_predecessor_8t             281.67 ns/op      3.55 Mops/s  (2.363s)
+  SkipList_t8_perOp_delete_8t                  390.97 ns/op      2.56 Mops/s  (3.280s)
+-- YFastV1_t8  threads=8 --
+  YFastV1_t8_random_8thread                    141.76 ns/op      7.05 Mops/s  (1.189s)
+  YFastV1_t8_perOp_insert_8t                   200.48 ns/op      4.99 Mops/s  (1.682s)
+  YFastV1_t8_perOp_query_8t                     85.34 ns/op     11.72 Mops/s  (0.716s)
+  YFastV1_t8_perOp_successor_8t                 88.02 ns/op     11.36 Mops/s  (0.738s)
+  YFastV1_t8_perOp_predecessor_8t               84.72 ns/op     11.80 Mops/s  (0.711s)
+  YFastV1_t8_perOp_delete_8t                   241.47 ns/op      4.14 Mops/s  (2.026s)
+-- YFastV2_t8  threads=8 --
+  YFastV2_t8_random_8thread                    124.27 ns/op      8.05 Mops/s  (1.042s)
+  YFastV2_t8_perOp_insert_8t                   196.30 ns/op      5.09 Mops/s  (1.647s)
+  YFastV2_t8_perOp_query_8t                     87.76 ns/op     11.40 Mops/s  (0.736s)
+  YFastV2_t8_perOp_successor_8t                 85.25 ns/op     11.73 Mops/s  (0.715s)
+  YFastV2_t8_perOp_predecessor_8t               83.93 ns/op     11.91 Mops/s  (0.704s)
+  YFastV2_t8_perOp_delete_8t                   224.41 ns/op      4.46 Mops/s  (1.883s)
+-- Threads = 16 --
+-- SkipList_t16  threads=16 --
+  SkipList_t16_random_16thread                 145.06 ns/op      6.89 Mops/s  (1.217s)
+  SkipList_t16_perOp_insert_16t                167.14 ns/op      5.98 Mops/s  (1.402s)
+  SkipList_t16_perOp_query_16t                 155.88 ns/op      6.42 Mops/s  (1.308s)
+  SkipList_t16_perOp_successor_16t             196.50 ns/op      5.09 Mops/s  (1.648s)
+  SkipList_t16_perOp_predecessor_16t           131.52 ns/op      7.60 Mops/s  (1.103s)
+  SkipList_t16_perOp_delete_16t                195.51 ns/op      5.11 Mops/s  (1.640s)
+-- YFastV1_t16  threads=16 --
+  YFastV1_t16_random_16thread                   87.25 ns/op     11.46 Mops/s  (0.732s)
+  YFastV1_t16_perOp_insert_16t                 118.45 ns/op      8.44 Mops/s  (0.994s)
+  YFastV1_t16_perOp_query_16t                   39.87 ns/op     25.08 Mops/s  (0.334s)
+  YFastV1_t16_perOp_successor_16t               44.92 ns/op     22.26 Mops/s  (0.377s)
+  YFastV1_t16_perOp_predecessor_16t             43.16 ns/op     23.17 Mops/s  (0.362s)
+  YFastV1_t16_perOp_delete_16t                 158.41 ns/op      6.31 Mops/s  (1.329s)
+-- YFastV2_t16  threads=16 --
+  YFastV2_t16_random_16thread                   93.59 ns/op     10.68 Mops/s  (0.785s)
+  YFastV2_t16_perOp_insert_16t                 101.37 ns/op      9.86 Mops/s  (0.850s)
+  YFastV2_t16_perOp_query_16t                   44.39 ns/op     22.53 Mops/s  (0.372s)
+  YFastV2_t16_perOp_successor_16t               45.25 ns/op     22.10 Mops/s  (0.380s)
+  YFastV2_t16_perOp_predecessor_16t             41.56 ns/op     24.06 Mops/s  (0.349s)
+  YFastV2_t16_perOp_delete_16t                 115.83 ns/op      8.63 Mops/s  (0.972s)
+-- Threads = 32 --
+-- SkipList_t32  threads=32 --
+  SkipList_t32_random_32thread                  74.29 ns/op     13.46 Mops/s  (0.623s)
+  SkipList_t32_perOp_insert_32t                 95.88 ns/op     10.43 Mops/s  (0.804s)
+  SkipList_t32_perOp_query_32t                  71.61 ns/op     13.96 Mops/s  (0.601s)
+  SkipList_t32_perOp_successor_32t              75.61 ns/op     13.23 Mops/s  (0.634s)
+  SkipList_t32_perOp_predecessor_32t            76.18 ns/op     13.13 Mops/s  (0.639s)
+  SkipList_t32_perOp_delete_32t                105.42 ns/op      9.49 Mops/s  (0.884s)
+-- YFastV1_t32  threads=32 --
+  YFastV1_t32_random_32thread                   59.07 ns/op     16.93 Mops/s  (0.496s)
+  YFastV1_t32_perOp_insert_32t                  90.40 ns/op     11.06 Mops/s  (0.758s)
+  YFastV1_t32_perOp_query_32t                   28.70 ns/op     34.84 Mops/s  (0.241s)
+  YFastV1_t32_perOp_successor_32t               25.88 ns/op     38.64 Mops/s  (0.217s)
+  YFastV1_t32_perOp_predecessor_32t             24.84 ns/op     40.26 Mops/s  (0.208s)
+  YFastV1_t32_perOp_delete_32t                 187.49 ns/op      5.33 Mops/s  (1.573s)
+-- YFastV2_t32  threads=32 --
+  YFastV2_t32_random_32thread                   40.45 ns/op     24.72 Mops/s  (0.339s)
+  YFastV2_t32_perOp_insert_32t                  65.39 ns/op     15.29 Mops/s  (0.549s)
+  YFastV2_t32_perOp_query_32t                   27.42 ns/op     36.47 Mops/s  (0.230s)
+  YFastV2_t32_perOp_successor_32t               30.99 ns/op     32.27 Mops/s  (0.260s)
+  YFastV2_t32_perOp_predecessor_32t             27.06 ns/op     36.95 Mops/s  (0.227s)
+  YFastV2_t32_perOp_delete_32t                  82.25 ns/op     12.16 Mops/s  (0.690s)
+-- Threads = 64 --
+-- SkipList_t64  threads=64 --
+  SkipList_t64_random_64thread                  43.98 ns/op     22.74 Mops/s  (0.369s)
+  SkipList_t64_perOp_insert_64t                 45.23 ns/op     22.11 Mops/s  (0.379s)
+  SkipList_t64_perOp_query_64t                  45.79 ns/op     21.84 Mops/s  (0.384s)
+  SkipList_t64_perOp_successor_64t              47.45 ns/op     21.08 Mops/s  (0.398s)
+  SkipList_t64_perOp_predecessor_64t            48.83 ns/op     20.48 Mops/s  (0.410s)
+  SkipList_t64_perOp_delete_64t                 57.83 ns/op     17.29 Mops/s  (0.485s)
+-- YFastV1_t64  threads=64 --
+  YFastV1_t64_random_64thread                   64.38 ns/op     15.53 Mops/s  (0.540s)
+  YFastV1_t64_perOp_insert_64t                 122.05 ns/op      8.19 Mops/s  (1.024s)
+  YFastV1_t64_perOp_query_64t                   22.36 ns/op     44.72 Mops/s  (0.188s)
+  YFastV1_t64_perOp_successor_64t               17.63 ns/op     56.73 Mops/s  (0.148s)
+  YFastV1_t64_perOp_predecessor_64t             16.43 ns/op     60.85 Mops/s  (0.138s)
+  YFastV1_t64_perOp_delete_64t                 340.85 ns/op      2.93 Mops/s  (2.859s)
+-- YFastV2_t64  threads=64 --
+  YFastV2_t64_random_64thread                   46.84 ns/op     21.35 Mops/s  (0.393s)
+  YFastV2_t64_perOp_insert_64t                  71.59 ns/op     13.97 Mops/s  (0.601s)
+  YFastV2_t64_perOp_query_64t                   18.79 ns/op     53.21 Mops/s  (0.158s)
+  YFastV2_t64_perOp_successor_64t               17.79 ns/op     56.20 Mops/s  (0.149s)
+  YFastV2_t64_perOp_predecessor_64t             15.44 ns/op     64.75 Mops/s  (0.130s)
+  YFastV2_t64_perOp_delete_64t                  74.46 ns/op     13.43 Mops/s  (0.625s)

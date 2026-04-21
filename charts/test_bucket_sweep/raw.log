@@ -1,0 +1,47 @@
+[jk2001@sigmod CS7800-Project]$ ./run.sh test9 63 16777216
+Note: xFast/ConcurrentXFastTrie.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+=== Bucket Size Sweep: bits=63 threads=16 ops=16777216 ===
+-- bucket = 4x bits = 252 --
+  V2_b252_insert_16t                           168.28 ns/op      5.94 Mops/s  (2.823s)
+  V2_b252_query_16t                             83.92 ns/op     11.92 Mops/s  (1.408s)
+  V2_b252_successor_16t                         84.32 ns/op     11.86 Mops/s  (1.415s)
+  V2_b252_predecessor_16t                       82.86 ns/op     12.07 Mops/s  (1.390s)
+  V2_b252_delete_16t                           341.32 ns/op      2.93 Mops/s  (5.726s)
+-- bucket = 8x bits = 504 --
+  V2_b504_insert_16t                           134.57 ns/op      7.43 Mops/s  (2.258s)
+  V2_b504_query_16t                             69.11 ns/op     14.47 Mops/s  (1.159s)
+  V2_b504_successor_16t                         69.39 ns/op     14.41 Mops/s  (1.164s)
+  V2_b504_predecessor_16t                       82.66 ns/op     12.10 Mops/s  (1.387s)
+  V2_b504_delete_16t                           208.74 ns/op      4.79 Mops/s  (3.502s)
+-- bucket = 16x bits = 1008 --
+  V2_b1008_insert_16t                          146.43 ns/op      6.83 Mops/s  (2.457s)
+  V2_b1008_query_16t                            64.09 ns/op     15.60 Mops/s  (1.075s)
+  V2_b1008_successor_16t                        60.99 ns/op     16.40 Mops/s  (1.023s)
+  V2_b1008_predecessor_16t                      66.73 ns/op     14.98 Mops/s  (1.120s)
+  V2_b1008_delete_16t                          180.51 ns/op      5.54 Mops/s  (3.029s)
+-- bucket = 32x bits = 2016 --
+  V2_b2016_insert_16t                          145.36 ns/op      6.88 Mops/s  (2.439s)
+  V2_b2016_query_16t                            57.41 ns/op     17.42 Mops/s  (0.963s)
+  V2_b2016_successor_16t                        52.05 ns/op     19.21 Mops/s  (0.873s)
+  V2_b2016_predecessor_16t                      56.70 ns/op     17.64 Mops/s  (0.951s)
+  V2_b2016_delete_16t                          164.58 ns/op      6.08 Mops/s  (2.761s)
+-- bucket = 64x bits = 4032 --
+  V2_b4032_insert_16t                          229.26 ns/op      4.36 Mops/s  (3.846s)
+  V2_b4032_query_16t                            55.92 ns/op     17.88 Mops/s  (0.938s)
+  V2_b4032_successor_16t                        54.92 ns/op     18.21 Mops/s  (0.921s)
+  V2_b4032_predecessor_16t                      51.86 ns/op     19.28 Mops/s  (0.870s)
+  V2_b4032_delete_16t                          167.35 ns/op      5.98 Mops/s  (2.808s)
+-- bucket = 128x bits = 8064 --
+  V2_b8064_insert_16t                          404.03 ns/op      2.48 Mops/s  (6.778s)
+  V2_b8064_query_16t                            60.34 ns/op     16.57 Mops/s  (1.012s)
+  V2_b8064_successor_16t                        46.44 ns/op     21.54 Mops/s  (0.779s)
+  V2_b8064_predecessor_16t                      53.76 ns/op     18.60 Mops/s  (0.902s)
+  V2_b8064_delete_16t                          201.77 ns/op      4.96 Mops/s  (3.385s)
+-- bucket = 256x bits = 16128 --
+  V2_b16128_insert_16t                         769.71 ns/op      1.30 Mops/s  (12.914s)
+  V2_b16128_query_16t                           47.52 ns/op     21.05 Mops/s  (0.797s)
+  V2_b16128_successor_16t                       52.58 ns/op     19.02 Mops/s  (0.882s)
+  V2_b16128_predecessor_16t                     48.48 ns/op     20.63 Mops/s  (0.813s)
+  V2_b16128_delete_16t                         327.96 ns/op      3.05 Mops/s  (5.502s)

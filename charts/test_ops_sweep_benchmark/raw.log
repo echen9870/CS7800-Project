@@ -1,0 +1,40 @@
+[jk2001@sigmod CS7800-Project]$ ./run.sh test7 63
+Note: xFast/ConcurrentXFastTrie.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+=== Unified Ops Sweep: bits=63 threads=64 ===
+-- ops = 2^21 --
+  V2unbounded_2097152_insert_64t               363.05 ns/op      2.75 Mops/s  (0.761s)
+  V2unbounded_2097152_query_64t                 96.98 ns/op     10.31 Mops/s  (0.203s)
+  SkipList_2097152_insert_64t                  166.20 ns/op      6.02 Mops/s  (0.349s)
+  SkipList_2097152_query_64t                    65.55 ns/op     15.26 Mops/s  (0.137s)
+-- ops = 2^22 --
+  V2unbounded_4194304_insert_64t               113.75 ns/op      8.79 Mops/s  (0.477s)
+  V2unbounded_4194304_query_64t                 25.10 ns/op     39.84 Mops/s  (0.105s)
+  SkipList_4194304_insert_64t                   80.06 ns/op     12.49 Mops/s  (0.336s)
+  SkipList_4194304_query_64t                    55.49 ns/op     18.02 Mops/s  (0.233s)
+-- ops = 2^23 --
+  V2unbounded_8388608_insert_64t               145.82 ns/op      6.86 Mops/s  (1.223s)
+  V2unbounded_8388608_query_64t                 25.38 ns/op     39.40 Mops/s  (0.213s)
+  SkipList_8388608_insert_64t                   74.89 ns/op     13.35 Mops/s  (0.628s)
+  SkipList_8388608_query_64t                    64.54 ns/op     15.50 Mops/s  (0.541s)
+-- ops = 2^24 --
+  V2unbounded_16777216_insert_64t              106.18 ns/op      9.42 Mops/s  (1.781s)
+  V2unbounded_16777216_query_64t                31.51 ns/op     31.74 Mops/s  (0.529s)
+  SkipList_16777216_insert_64t                  77.80 ns/op     12.85 Mops/s  (1.305s)
+  SkipList_16777216_query_64t                   69.28 ns/op     14.43 Mops/s  (1.162s)
+-- ops = 2^25 --
+  V2unbounded_33554432_insert_64t              112.21 ns/op      8.91 Mops/s  (3.765s)
+  V2unbounded_33554432_query_64t                32.82 ns/op     30.47 Mops/s  (1.101s)
+  SkipList_33554432_insert_64t                  92.84 ns/op     10.77 Mops/s  (3.115s)
+  SkipList_33554432_query_64t                   82.91 ns/op     12.06 Mops/s  (2.782s)
+-- ops = 2^26 --
+  V2unbounded_67108864_insert_64t              117.79 ns/op      8.49 Mops/s  (7.905s)
+  V2unbounded_67108864_query_64t                34.86 ns/op     28.68 Mops/s  (2.340s)
+  SkipList_67108864_insert_64t                 141.35 ns/op      7.07 Mops/s  (9.486s)
+  SkipList_67108864_query_64t                   81.80 ns/op     12.23 Mops/s  (5.489s)
+-- ops = 2^27 --
+  V2unbounded_134217728_insert_64t             121.25 ns/op      8.25 Mops/s  (16.274s)
+  V2unbounded_134217728_query_64t               35.59 ns/op     28.10 Mops/s  (4.777s)
+  SkipList_134217728_insert_64t                186.17 ns/op      5.37 Mops/s  (24.988s)
+  SkipList_134217728_query_64t                 113.27 ns/op      8.83 Mops/s  (15.202s)

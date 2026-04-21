@@ -1,0 +1,110 @@
+[jk2001@sigmod CS7800-Project]$ ./run.sh test1 63 8388608
+Note: xFast/ConcurrentXFastTrie.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+=== Thread Scalability: bits = 63 ops = 8388608 ===
+-- Threads = 1 --
+-- YFastV1_t1  threads=1 --
+  YFastV1_t1_random_1thread                    716.85 ns/op      1.39 Mops/s  (6.013s)
+  YFastV1_t1_perOp_insert_1t                  1091.54 ns/op      0.92 Mops/s  (9.157s)
+  YFastV1_t1_perOp_query_1t                    647.53 ns/op      1.54 Mops/s  (5.432s)
+  YFastV1_t1_perOp_successor_1t                652.29 ns/op      1.53 Mops/s  (5.472s)
+  YFastV1_t1_perOp_predecessor_1t              649.46 ns/op      1.54 Mops/s  (5.448s)
+  YFastV1_t1_perOp_delete_1t                  1126.04 ns/op      0.89 Mops/s  (9.446s)
+-- YFastV2_t1  threads=1 --
+  YFastV2_t1_random_1thread                    719.10 ns/op      1.39 Mops/s  (6.032s)
+  YFastV2_t1_perOp_insert_1t                  1159.77 ns/op      0.86 Mops/s  (9.729s)
+  YFastV2_t1_perOp_query_1t                    641.39 ns/op      1.56 Mops/s  (5.380s)
+  YFastV2_t1_perOp_successor_1t                606.28 ns/op      1.65 Mops/s  (5.086s)
+  YFastV2_t1_perOp_predecessor_1t              593.07 ns/op      1.69 Mops/s  (4.975s)
+  YFastV2_t1_perOp_delete_1t                  1076.60 ns/op      0.93 Mops/s  (9.031s)
+-- Threads = 2 --
+-- YFastV1_t2  threads=2 --
+  YFastV1_t2_random_2thread                    380.50 ns/op      2.63 Mops/s  (3.192s)
+  YFastV1_t2_perOp_insert_2t                   556.80 ns/op      1.80 Mops/s  (4.671s)
+  YFastV1_t2_perOp_query_2t                    347.95 ns/op      2.87 Mops/s  (2.919s)
+  YFastV1_t2_perOp_successor_2t                320.93 ns/op      3.12 Mops/s  (2.692s)
+  YFastV1_t2_perOp_predecessor_2t              311.31 ns/op      3.21 Mops/s  (2.611s)
+  YFastV1_t2_perOp_delete_2t                   612.05 ns/op      1.63 Mops/s  (5.134s)
+-- YFastV2_t2  threads=2 --
+  YFastV2_t2_random_2thread                    416.95 ns/op      2.40 Mops/s  (3.498s)
+  YFastV2_t2_perOp_insert_2t                   577.15 ns/op      1.73 Mops/s  (4.842s)
+  YFastV2_t2_perOp_query_2t                    331.96 ns/op      3.01 Mops/s  (2.785s)
+  YFastV2_t2_perOp_successor_2t                322.96 ns/op      3.10 Mops/s  (2.709s)
+  YFastV2_t2_perOp_predecessor_2t              310.52 ns/op      3.22 Mops/s  (2.605s)
+  YFastV2_t2_perOp_delete_2t                   597.99 ns/op      1.67 Mops/s  (5.016s)
+-- Threads = 4 --
+-- YFastV1_t4  threads=4 --
+  YFastV1_t4_random_4thread                    239.43 ns/op      4.18 Mops/s  (2.008s)
+  YFastV1_t4_perOp_insert_4t                   373.11 ns/op      2.68 Mops/s  (3.130s)
+  YFastV1_t4_perOp_query_4t                    174.25 ns/op      5.74 Mops/s  (1.462s)
+  YFastV1_t4_perOp_successor_4t                169.91 ns/op      5.89 Mops/s  (1.425s)
+  YFastV1_t4_perOp_predecessor_4t              168.26 ns/op      5.94 Mops/s  (1.411s)
+  YFastV1_t4_perOp_delete_4t                   404.08 ns/op      2.47 Mops/s  (3.390s)
+-- YFastV2_t4  threads=4 --
+  YFastV2_t4_random_4thread                    293.83 ns/op      3.40 Mops/s  (2.465s)
+  YFastV2_t4_perOp_insert_4t                   378.87 ns/op      2.64 Mops/s  (3.178s)
+  YFastV2_t4_perOp_query_4t                    169.60 ns/op      5.90 Mops/s  (1.423s)
+  YFastV2_t4_perOp_successor_4t                169.97 ns/op      5.88 Mops/s  (1.426s)
+  YFastV2_t4_perOp_predecessor_4t              169.64 ns/op      5.89 Mops/s  (1.423s)
+  YFastV2_t4_perOp_delete_4t                   412.16 ns/op      2.43 Mops/s  (3.457s)
+-- Threads = 8 --
+-- YFastV1_t8  threads=8 --
+  YFastV1_t8_random_8thread                    138.38 ns/op      7.23 Mops/s  (1.161s)
+  YFastV1_t8_perOp_insert_8t                   202.61 ns/op      4.94 Mops/s  (1.700s)
+  YFastV1_t8_perOp_query_8t                     83.55 ns/op     11.97 Mops/s  (0.701s)
+  YFastV1_t8_perOp_successor_8t                 84.38 ns/op     11.85 Mops/s  (0.708s)
+  YFastV1_t8_perOp_predecessor_8t               82.68 ns/op     12.09 Mops/s  (0.694s)
+  YFastV1_t8_perOp_delete_8t                   252.01 ns/op      3.97 Mops/s  (2.114s)
+-- YFastV2_t8  threads=8 --
+  YFastV2_t8_random_8thread                    128.43 ns/op      7.79 Mops/s  (1.077s)
+  YFastV2_t8_perOp_insert_8t                   189.32 ns/op      5.28 Mops/s  (1.588s)
+  YFastV2_t8_perOp_query_8t                     80.88 ns/op     12.36 Mops/s  (0.679s)
+  YFastV2_t8_perOp_successor_8t                 81.33 ns/op     12.29 Mops/s  (0.682s)
+  YFastV2_t8_perOp_predecessor_8t               83.20 ns/op     12.02 Mops/s  (0.698s)
+  YFastV2_t8_perOp_delete_8t                   214.50 ns/op      4.66 Mops/s  (1.799s)
+-- Threads = 16 --
+-- YFastV1_t16  threads=16 --
+  YFastV1_t16_random_16thread                   75.77 ns/op     13.20 Mops/s  (0.636s)
+  YFastV1_t16_perOp_insert_16t                  99.67 ns/op     10.03 Mops/s  (0.836s)
+  YFastV1_t16_perOp_query_16t                   47.61 ns/op     21.00 Mops/s  (0.399s)
+  YFastV1_t16_perOp_successor_16t               44.94 ns/op     22.25 Mops/s  (0.377s)
+  YFastV1_t16_perOp_predecessor_16t             45.59 ns/op     21.94 Mops/s  (0.382s)
+  YFastV1_t16_perOp_delete_16t                 173.45 ns/op      5.77 Mops/s  (1.455s)
+-- YFastV2_t16  threads=16 --
+  YFastV2_t16_random_16thread                   68.65 ns/op     14.57 Mops/s  (0.576s)
+  YFastV2_t16_perOp_insert_16t                  96.46 ns/op     10.37 Mops/s  (0.809s)
+  YFastV2_t16_perOp_query_16t                   43.08 ns/op     23.22 Mops/s  (0.361s)
+  YFastV2_t16_perOp_successor_16t               46.63 ns/op     21.44 Mops/s  (0.391s)
+  YFastV2_t16_perOp_predecessor_16t             45.41 ns/op     22.02 Mops/s  (0.381s)
+  YFastV2_t16_perOp_delete_16t                 117.49 ns/op      8.51 Mops/s  (0.986s)
+-- Threads = 32 --
+-- YFastV1_t32  threads=32 --
+  YFastV1_t32_random_32thread                   58.32 ns/op     17.15 Mops/s  (0.489s)
+  YFastV1_t32_perOp_insert_32t                  83.71 ns/op     11.95 Mops/s  (0.702s)
+  YFastV1_t32_perOp_query_32t                   25.73 ns/op     38.86 Mops/s  (0.216s)
+  YFastV1_t32_perOp_successor_32t               25.97 ns/op     38.50 Mops/s  (0.218s)
+  YFastV1_t32_perOp_predecessor_32t             24.62 ns/op     40.61 Mops/s  (0.207s)
+  YFastV1_t32_perOp_delete_32t                 173.03 ns/op      5.78 Mops/s  (1.451s)
+-- YFastV2_t32  threads=32 --
+  YFastV2_t32_random_32thread                   40.68 ns/op     24.58 Mops/s  (0.341s)
+  YFastV2_t32_perOp_insert_32t                  63.42 ns/op     15.77 Mops/s  (0.532s)
+  YFastV2_t32_perOp_query_32t                   26.60 ns/op     37.59 Mops/s  (0.223s)
+  YFastV2_t32_perOp_successor_32t               24.86 ns/op     40.23 Mops/s  (0.209s)
+  YFastV2_t32_perOp_predecessor_32t             26.23 ns/op     38.13 Mops/s  (0.220s)
+  YFastV2_t32_perOp_delete_32t                  83.12 ns/op     12.03 Mops/s  (0.697s)
+-- Threads = 64 --
+-- YFastV1_t64  threads=64 --
+  YFastV1_t64_random_64thread                   68.36 ns/op     14.63 Mops/s  (0.573s)
+  YFastV1_t64_perOp_insert_64t                 137.45 ns/op      7.28 Mops/s  (1.153s)
+  YFastV1_t64_perOp_query_64t                   18.13 ns/op     55.15 Mops/s  (0.152s)
+  YFastV1_t64_perOp_successor_64t               18.98 ns/op     52.69 Mops/s  (0.159s)
+  YFastV1_t64_perOp_predecessor_64t             16.04 ns/op     62.33 Mops/s  (0.135s)
+  YFastV1_t64_perOp_delete_64t                 355.35 ns/op      2.81 Mops/s  (2.981s)
+-- YFastV2_t64  threads=64 --
+  YFastV2_t64_random_64thread                   44.27 ns/op     22.59 Mops/s  (0.371s)
+  YFastV2_t64_perOp_insert_64t                  72.24 ns/op     13.84 Mops/s  (0.606s)
+  YFastV2_t64_perOp_query_64t                   18.55 ns/op     53.89 Mops/s  (0.156s)
+  YFastV2_t64_perOp_successor_64t               17.19 ns/op     58.17 Mops/s  (0.144s)
+  YFastV2_t64_perOp_predecessor_64t             18.13 ns/op     55.15 Mops/s  (0.152s)
+  YFastV2_t64_perOp_delete_64t                  82.93 ns/op     12.06 Mops/s  (0.696s)

@@ -33,11 +33,15 @@ yFast/
   TestYFastQueryConcurrencyCorrectness.java
 benchmark/
   BenchmarkFramework.java    thread harness + timing
-  BenchmarkSuite.java        six benchmark configurations
+  BenchmarkSuite.java        nine benchmark configurations
   RunResult.java             ns/op + Mops/s formatter
 charts/
-  test2/                     thread sweep data + plots
-  ...                        one folder per benchmark run
+  test1/, test1_16M/         V1 vs V2 thread sweeps (N=2^23, 2^24)
+  test2/                     V1 vs V2 vs SkipList thread sweep
+  test_ops_sweep_benchmark/  V2 vs SkipList, N sweep at 64 threads
+  test_thread_sweep/,
+  test_thread_sweep_128M/    V2 vs SkipList thread sweeps at fixed N
+  test_bucket_sweep/         bucket-size tradeoff sweep
 Main.java                    entry point
 run.sh                       compile + run helper
 ```
@@ -52,14 +56,20 @@ run.sh                       compile + run helper
 ./run.sh test1 <bits> <ops>   # V1 vs V2, 1..64 threads
 ./run.sh test2 <bits> <ops>   # V1 vs V2 vs SkipList, 1..64 threads
 ./run.sh test3 <bits> <ops>   # V2 bounded vs unbounded LFL, 1..64 threads
-./run.sh test4 [bits]         # V2 unbounded LFL, ops sweep 2^20..2^29, 64 threads
-./run.sh test5 [bits]         # SkipList ops sweep
-./run.sh test6 [bits]         # V2 bounded LFL ops sweep
+./run.sh test4 [bits]         # V2 unbounded LFL, N sweep 2^20..2^29, 64 threads
+./run.sh test5 [bits]         # SkipList N sweep, 64 threads
+./run.sh test6 [bits]         # V2 bounded LFL N sweep, 64 threads
+./run.sh test7 [bits]         # V2 (unbounded) vs SkipList N sweep, 64 threads
+./run.sh test8 <bits> <ops>   # V2 (unbounded) vs SkipList thread sweep at fixed N
+./run.sh test9 <bits> <ops>   # V2 bucket-size sweep, 16 threads
 ```
 
-Typical report run:
+Typical report runs:
 ```
-./run.sh test2 63 8388608   # bits=63, N=2^23
+./run.sh test2 63 8388608    # bits=63, N=2^23  (main thread-scaling figure)
+./run.sh test7 63            # N sweep 2^21..2^27
+./run.sh test8 63 16777216   # thread sweep at N=2^24
+./run.sh test9 63 16777216   # bucket-size tradeoff
 ```
 
 ## Concurrency design notes
@@ -90,8 +100,8 @@ Always acquired in this order to stay deadlock-free:
 - `ConcurrentXFastTrie` is slower than the single-lock `XFastTrie` at 1
   thread due to `ConcurrentHashMap` overhead. The break-even is around
   4 threads.
-- Bucket size defaults to `32 * bits`. Not currently swept; constructor
-  accepts a custom value if you want to experiment.
+- Bucket size defaults to `32 * bits`. Swept in test9; the constructor
+  `ConcurrentYFastTrieV2(bits, xfast, bucketSize)` accepts a custom value.
 
 ## Benchmark output format
 Each run prints lines like:
@@ -106,3 +116,6 @@ isolation, insert-first on a fresh structure.
 ## Charts
 Raw logs live under `charts/testN/raw.log`. Run `python plot.py` in each
 folder to regenerate PNGs from the log.
+
+## Contributors
+Alex Stevenson, Jenish Kothari, Eric Chen.
